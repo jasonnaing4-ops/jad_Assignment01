@@ -1,0 +1,19 @@
+/build/
+# Eclipse workspace and project settings
+.metadata/
+.project
+.classpath
+.settings/
+# Generated output
+build/
+bin/
+target/
+*.class
+*.war
+*.ear
+# Local editor and OS files
+.vscode/
+.DS_Store
+Thumbs.db
+# MySQL connector: supplied locally by each student
+src/main/webapp/WEB-INF/lib/mysql-connector*.jar
