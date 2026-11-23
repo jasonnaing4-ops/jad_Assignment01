@@ -19,6 +19,8 @@
             errMessage = "This account has been deactivated. Please contact staff.";
         } else if (errCode.equals("notLoggedIn")) {
             errMessage = "Please log in to continue.";
+        } else if (errCode.equals("sessionExpired")) {
+        	errMessage = "Your session has expired. Please log in again.";
         } else if (errCode.equals("dbError")) {
             errMessage = "Something went wrong. Please try again.";
         }
@@ -29,6 +31,8 @@
     if (msg != null) {
         if (msg.equals("loggedOut")) {
             infoMessage = "You have been logged out.";
+        } else if (msg.equals("accountCreated")) {
+        	infoMessage = "Your account was created. Please log in.";
         }
     }
 %>
@@ -54,6 +58,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Log In</button>
+        <p class="text-center small mt-3 mb-0">New here? <a href="register.jsp">Create an account</a></p>
     </div>
 </form>
 

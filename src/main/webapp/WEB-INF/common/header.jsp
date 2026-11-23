@@ -35,7 +35,7 @@
         Connection headerConn = null;
         try {
             String hdrJdbcDriver = "com.mysql.cj.jdbc.Driver";
-            String hdrConnURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=root&serverTimezone=UTC";
+            String hdrConnURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=jason1224&serverTimezone=UTC";
             Class.forName(hdrJdbcDriver);
             headerConn = DriverManager.getConnection(hdrConnURL);
             String headerSql = "SELECT username, role FROM users WHERE user_id = ?";
@@ -75,8 +75,14 @@
     				<a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onEventPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
        				<%= onEventPages ? "aria-current=\"page\"" : "" %>
        				href="<%= request.getContextPath() %>/event/list_events.jsp">Manage Events</a>
+       				<% boolean onParticipantPages = request.getRequestURI().contains("/participant/"); %>
+					<a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onParticipantPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
+					<%= onParticipantPages ? "aria-current=\"page\"" : "" %>
+					href="<%= request.getContextPath() %>/participant/list_participants.jsp">Manage Participants</a>
                 <% } else { %>
                     <a class="nav-link text-white" href="<%= request.getContextPath() %>/home/home.jsp">Home</a>
+                    <a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_signups.jsp">My Events</a>
+					<a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_account.jsp">My Account</a>
                 <% } %>
 				<span class="rounded-pill border border-white border-opacity-25 bg-white bg-opacity-10 text-white fst-italic px-3 py-1">
     				Welcome, <%= esc(headerUsername) %>
@@ -84,6 +90,7 @@
 				<a class="btn btn-danger rounded-pill px-3 py-1" href="<%= request.getContextPath() %>/login/logout.jsp">Logout</a>
             <% } else { %>
                 <a class="nav-link text-white" href="<%= request.getContextPath() %>/login/login.jsp">Login</a>
+                <a class="nav-link text-white" href="<%= request.getContextPath() %>/login/register.jsp">Create Account</a>
             <% } %>
         </div>
     </div>

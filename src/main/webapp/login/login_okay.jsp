@@ -56,7 +56,7 @@
             if ("staff".equals(role)) {
                 response.sendRedirect("../event/list_events.jsp");
             } else {
-                response.sendRedirect("../home/home.jsp");
+            	response.sendRedirect("../account/my_signups.jsp");
             }
             return;
         } else {

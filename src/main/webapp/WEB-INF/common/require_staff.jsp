@@ -23,7 +23,9 @@
 <%
     Integer userId = (Integer) session.getAttribute("userId");
     if (userId == null) {
-        response.sendRedirect(request.getContextPath() + "/login/login.jsp?errCode=notLoggedIn");
+    	// a session id the server no longer knows = the session timed out 
+    	boolean guardExpired = request.getRequestedSessionId() != null && !request.isRequestedSessionIdValid();
+    	response.sendRedirect(request.getContextPath() + "/login/login.jsp?errCode=" + (guardExpired ? "sessionExpired" : "notLoggedIn"));
         return;
     }
 %>

@@ -35,7 +35,7 @@
     Connection ddConn = null;
     try {
         String ddDriver = "com.mysql.cj.jdbc.Driver";
-        String ddConnURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=root&serverTimezone=UTC";
+        String ddConnURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=jason1224&serverTimezone=UTC";
         Class.forName(ddDriver);
         ddConn = DriverManager.getConnection(ddConnURL);
         String ddSql = "SELECT event_id, event_name, event_date FROM events "

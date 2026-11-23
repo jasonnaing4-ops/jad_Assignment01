@@ -23,5 +23,5 @@
 --%>
 <%
     String jdbcDriver = "com.mysql.cj.jdbc.Driver";
-    String connURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=root&serverTimezone=UTC";
+    String connURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=jason1224&serverTimezone=UTC";
 %>
