@@ -1,0 +1,65 @@
+/*
+    Author: Pyae Phyo Maung (P2535128)
+    Date: 22/11/2026
+    Description: Small leftover stylesheet on top of Bootstrap 5 (loaded from
+    the CDN in common/header.jsp). Only holds what Bootstrap has no utility
+    for: the site's own brand colour for Bootstrap's "primary", the navbar
+    background, the accent bar on the event stat cards, and the "+" badge on
+    the Create Event button.
+*/
+
+/* Make Bootstrap's "primary" the site's dark teal instead of default blue */
+:root {
+    --bs-primary: #1b4965;
+    --bs-primary-rgb: 27, 73, 101;
+    --bs-link-color: #1b4965;
+    --bs-link-hover-color: #163a52;
+}
+
+.btn-primary {
+    --bs-btn-bg: #1b4965;
+    --bs-btn-border-color: #1b4965;
+    --bs-btn-hover-bg: #163a52;
+    --bs-btn-hover-border-color: #163a52;
+    --bs-btn-active-bg: #163a52;
+    --bs-btn-active-border-color: #163a52;
+    --bs-btn-disabled-bg: #1b4965;
+    --bs-btn-disabled-border-color: #1b4965;
+}
+
+.bg-brand {
+    background-color: #1b4965;
+}
+
+/* Event Management stat cards (colour comes from Bootstrap bg-* classes) */
+.stat-indicator {
+    width: 4px;
+    height: 32px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.stat-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Create Event button: round "+" badge before the label */
+.btn-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.9rem;
+}
+
+.btn-create::before {
+    content: "+";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.25);
+    font-weight: bold;
+    line-height: 1;
+}
