@@ -25,6 +25,8 @@
         response.sendRedirect("list_participants.jsp");
         return;
     }
+    
+    
     String idParam = request.getParameter("id");
     boolean isUpdate = (idParam != null && !idParam.trim().isEmpty());
     String formPage = isUpdate ? "/participant/edit_participant.jsp" : "/participant/add_participant.jsp";

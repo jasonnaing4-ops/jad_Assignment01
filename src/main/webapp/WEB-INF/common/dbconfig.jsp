@@ -12,16 +12,14 @@
     includes this - never class-level fields - so this is safe to include
     on as many pages as you like.
 
-    IMPORTANT: common/require_staff.jsp already includes this file. A page
-    that includes require_staff.jsp must NOT include dbconfig.jsp again -
-    that would try to declare jdbcDriver/connURL twice in the same method and
-    fail to compile. Just reuse the jdbcDriver/connURL that require_staff.jsp
-    already brought in.
+    Include it ONCE per page, before require_staff.jsp and header.jsp (both
+    use jdbcDriver/connURL from here and do not include this file
+    themselves). It is the only place the DB credentials live.
 
     Edit the username/password below to match your own MySQL setup before
     running this locally.
 --%>
 <%
     String jdbcDriver = "com.mysql.cj.jdbc.Driver";
-    String connURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=jason1224&serverTimezone=UTC";
+    String connURL = util.DbConfig.getConnURL(application);
 %>

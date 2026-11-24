@@ -17,3 +17,5 @@ target/
 Thumbs.db
 # MySQL connector: supplied locally by each student
 src/main/webapp/WEB-INF/lib/mysql-connector*.jar
+# Database Credentials
+**/WEB-INF/.env

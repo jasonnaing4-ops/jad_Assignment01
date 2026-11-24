@@ -8,8 +8,8 @@
 
         <%@ include file="/WEB-INF/common/header.jsp" %>
 
-    Safe to include on login.jsp too: with no session yet it just shows a
-    guest nav with a Login link. Re-looks-up username/role from the DB by the
+    Safe to include on login.jsp too: with no session yet it just shows the
+    title bar with no nav links. Re-looks-up username/role from the DB by the
     userId already in the session - nothing but userId is ever trusted out of
     the session itself. Also brings in esc() (see common/esc.jsp) for the
     rest of the including page to use.
@@ -26,6 +26,7 @@
     below too (same small, deliberate duplication as event_dropdown.jsp).
 --%>
 <%@ include file="/WEB-INF/common/esc.jsp" %>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <%
     Integer headerUserId = (Integer) session.getAttribute("userId");
     String headerUsername = null;
@@ -35,8 +36,7 @@
         Connection headerConn = null;
         try {
             String hdrJdbcDriver = "com.mysql.cj.jdbc.Driver";
-            String hdrConnURL = "jdbc:mysql://localhost:3306/jad_assignment01_database?user=root&password=jason1224&serverTimezone=UTC";
-            Class.forName(hdrJdbcDriver);
+            String hdrConnURL = util.DbConfig.getConnURL(application);            Class.forName(hdrJdbcDriver);
             headerConn = DriverManager.getConnection(hdrConnURL);
             String headerSql = "SELECT username, role FROM users WHERE user_id = ?";
             PreparedStatement headerPs = headerConn.prepareStatement(headerSql);
@@ -71,26 +71,23 @@
         <div class="d-flex flex-wrap align-items-center gap-3">
             <% if (headerUserId != null) { %>
                 <% if ("staff".equals(headerRole)) { %>
-     			<% boolean onEventPages = request.getRequestURI().contains("/event/"); %>
-    				<a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onEventPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
-       				<%= onEventPages ? "aria-current=\"page\"" : "" %>
-       				href="<%= request.getContextPath() %>/event/list_events.jsp">Manage Events</a>
-       				<% boolean onParticipantPages = request.getRequestURI().contains("/participant/"); %>
-					<a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onParticipantPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
-					<%= onParticipantPages ? "aria-current=\"page\"" : "" %>
-					href="<%= request.getContextPath() %>/participant/list_participants.jsp">Manage Participants</a>
+                    <% boolean onEventPages = request.getRequestURI().contains("/event/"); %>
+                    <a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onEventPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
+                       <%= onEventPages ? "aria-current=\"page\"" : "" %>
+                       href="<%= request.getContextPath() %>/event/list_events.jsp">Manage Events</a>
+                    <% boolean onParticipantPages = request.getRequestURI().contains("/participant/"); %>
+                    <a class="nav-link text-white rounded-pill px-3 py-1 text-decoration-underline link-underline link-underline-light link-underline-opacity-0 link-underline-opacity-100-hover<%= onParticipantPages ? " bg-white bg-opacity-25 fw-semibold" : "" %>"
+                       <%= onParticipantPages ? "aria-current=\"page\"" : "" %>
+                       href="<%= request.getContextPath() %>/participant/list_participants.jsp">Manage Participants</a>
                 <% } else { %>
                     <a class="nav-link text-white" href="<%= request.getContextPath() %>/home/home.jsp">Home</a>
                     <a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_signups.jsp">My Events</a>
-					<a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_account.jsp">My Account</a>
+                    <a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_account.jsp">My Account</a>
                 <% } %>
-				<span class="rounded-pill border border-white border-opacity-25 bg-white bg-opacity-10 text-white fst-italic px-3 py-1">
-    				Welcome, <%= esc(headerUsername) %>
-				</span>
-				<a class="btn btn-danger rounded-pill px-3 py-1" href="<%= request.getContextPath() %>/login/logout.jsp">Logout</a>
-            <% } else { %>
-                <a class="nav-link text-white" href="<%= request.getContextPath() %>/login/login.jsp">Login</a>
-                <a class="nav-link text-white" href="<%= request.getContextPath() %>/login/register.jsp">Create Account</a>
+                <span class="rounded-pill border border-white border-opacity-25 bg-white bg-opacity-10 text-white fst-italic px-3 py-1">
+                    Welcome, <%= esc(headerUsername) %>
+                </span>
+                <a class="btn btn-danger rounded-pill px-3 py-1" href="<%= request.getContextPath() %>/login/logout.jsp">Logout</a>
             <% } %>
         </div>
     </div>
