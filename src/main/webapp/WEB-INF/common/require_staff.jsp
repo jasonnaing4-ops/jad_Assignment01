@@ -51,7 +51,7 @@
         }
     }
     if (!isStaff) {
-        response.sendRedirect(request.getContextPath() + "/home/home.jsp?errCode=notAuthorized");
+        response.sendRedirect(request.getContextPath() + "/account/my_signups.jsp");
         return;
     }
 %>

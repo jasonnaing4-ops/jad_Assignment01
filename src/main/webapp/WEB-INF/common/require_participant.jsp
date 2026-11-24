@@ -63,7 +63,7 @@
         return;
     }
     if (!"participant".equals(guardRole)) {
-        response.sendRedirect(request.getContextPath() + "/home/home.jsp?errCode=notAuthorized");
+        response.sendRedirect(request.getContextPath() + "/event/list_events.jsp");
         return;
     }
 

@@ -6,6 +6,43 @@
     are errCode and msg, to explain why the last attempt failed or that the
     user was just logged out. All actual processing happens in login_okay.jsp.
 --%>
+<%@ include file="/WEB-INF/common/dbconfig.jsp" %>
+<%
+    if (session.getAttribute("userId") != null) {
+    	Integer userId = (Integer) session.getAttribute("userId");
+    	String role = null;
+    	Connection conn = null;
+        try {
+            Class.forName(jdbcDriver);
+            conn = DriverManager.getConnection(connURL);
+
+            String sql = "SELECT role FROM users WHERE user_id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                role = rs.getString("role");
+            }
+
+            if ("participant".equals(role)) {
+    			response.sendRedirect("../account/my_signups.jsp");
+    			return;
+            }
+            
+            if ("staff".equals(role)) {
+                response.sendRedirect("../event/list_events.jsp");
+                return;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("home.jsp - " + e);
+        } finally {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException e) { System.err.println("Error closing connection: " + e); }
+            }
+    }
+   }
+%>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%
     String errCode = request.getParameter("errCode");

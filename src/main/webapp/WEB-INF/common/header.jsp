@@ -80,7 +80,6 @@
                        <%= onParticipantPages ? "aria-current=\"page\"" : "" %>
                        href="<%= request.getContextPath() %>/participant/list_participants.jsp">Manage Participants</a>
                 <% } else { %>
-                    <a class="nav-link text-white" href="<%= request.getContextPath() %>/home/home.jsp">Home</a>
                     <a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_signups.jsp">My Events</a>
                     <a class="nav-link text-white" href="<%= request.getContextPath() %>/account/my_account.jsp">My Account</a>
                 <% } %>
