@@ -285,9 +285,9 @@
 </div>
 
 
-<div class="table-responsive">
+<div class="table-responsive table-scroll">
 <table class="table table-bordered table-hover align-middle">
-    <thead class="table-light">
+   <thead class="table-light sticky-top" style="z-index: 2;">
         <tr>
             <th>Event Name</th>
             <th>Date</th>
@@ -403,6 +403,7 @@
 %>
     </tbody>
 </table>
+</div>
 </div>
 
 <script>
