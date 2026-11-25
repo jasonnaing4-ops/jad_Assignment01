@@ -36,7 +36,8 @@
         Connection headerConn = null;
         try {
             String hdrJdbcDriver = "com.mysql.cj.jdbc.Driver";
-            String hdrConnURL = util.DbConfig.getConnURL(application);            Class.forName(hdrJdbcDriver);
+            String hdrConnURL = util.DbConfig.getConnURL(application);            
+            Class.forName(hdrJdbcDriver);
             headerConn = DriverManager.getConnection(hdrConnURL);
             String headerSql = "SELECT username, role FROM users WHERE user_id = ?";
             PreparedStatement headerPs = headerConn.prepareStatement(headerSql);
@@ -65,7 +66,7 @@
 <link rel="stylesheet" type="text/css" href="<%= request.getContextPath() %>/css/style.css">
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-dark bg-brand">
+<nav class="navbar navbar-dark bg-brand sticky-top shadow-sm">
     <div class="container-fluid px-4">
         <span class="navbar-brand fw-bold mb-0">Vision Screening Station Management System</span>
         <div class="d-flex flex-wrap align-items-center gap-3">

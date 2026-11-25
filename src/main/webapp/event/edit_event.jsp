@@ -26,14 +26,19 @@
     }
 
     // Step 3: Process - look the event up
-    String dbEventName = null, dbVenue = null, status = null, dbDescription = null;
-    java.sql.Time dbStartTime = null, dbEndTime = null;
+    String dbEventName = null, 
+    dbVenue = null, 
+    status = null, 
+    dbDescription = null;
+    java.sql.Time dbStartTime = null, 
+    dbEndTime = null;
     java.sql.Date dbEventDate = null;
+    int dbCapacity = 50;
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
-        String sql = "SELECT event_name, event_date, venue, status, start_time, end_time, description FROM events WHERE event_id = ?";
+        String sql = "SELECT event_name, event_date, venue, status, start_time, end_time, description, capacity FROM events WHERE event_id = ?";
         PreparedStatement ps = conn.prepareStatement(sql);
         ps.setInt(1, eventId);
         ResultSet rs = ps.executeQuery();
@@ -45,6 +50,7 @@
             dbStartTime = rs.getTime("start_time");
             dbEndTime = rs.getTime("end_time");
             dbDescription = rs.getString("description");
+            dbCapacity = rs.getInt("capacity");
         } else {
             response.sendRedirect("list_events.jsp?errCode=notFound");
             return;
@@ -69,6 +75,9 @@
         else if (errCode.equals("badTime")) { errMessage = "Please enter valid start and end times."; }
         else if (errCode.equals("endBeforeStart")) { errMessage = "End time must be later than start time."; }
         else if (errCode.equals("dbError")) { errMessage = "Something went wrong saving the event. Please try again."; }
+        else if (errCode.equals("pastDate")) { errMessage = "The event date cannot be in the past."; }
+        else if (errCode.equals("pastTime")) { errMessage = "The start time has already passed today. Please choose a later time."; }
+        else if (errCode.equals("badCapacity")) { errMessage = "Capacity must be a whole number of at least 1."; }
     }
 
     String nameOverride = request.getParameter("eventName");
@@ -85,6 +94,8 @@
     String startTimeDisplay = (startTimeOverride != null) ? startTimeOverride : (dbStartTime != null ? dbStartTime.toString().substring(0, 5) : "");
     String endTimeDisplay = (endTimeOverride != null) ? endTimeOverride : (dbEndTime != null ? dbEndTime.toString().substring(0, 5) : "");
     String descriptionDisplay = (descriptionOverride != null) ? descriptionOverride : dbDescription;
+    String capacityOverride = request.getParameter("capacity");
+    String capacityDisplay = (capacityOverride != null) ? capacityOverride : String.valueOf(dbCapacity);
 %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
@@ -98,12 +109,13 @@
 
         <div class="mb-3">
             <label for="eventName" class="form-label fw-semibold">Event Title</label>
-            <input type="text" id="eventName" name="eventName" class="form-control" placeholder="Event Name" value="<%= esc(nameDisplay) %>" required>
+            <input type="text" id="eventName" name="eventName" class="form-control" placeholder="Event Name - MRT Name" value="<%= esc(nameDisplay) %>" required>
+            <p>(Suggestion: Event Name - MRT Name)</p>
         </div>
 
         <div class="mb-3">
             <label for="eventDate" class="form-label fw-semibold">Pick Date</label>
-            <input type="date" id="eventDate" name="eventDate" class="form-control" value="<%= esc(dateDisplay) %>" required>
+            <input type="date" id="eventDate" name="eventDate" class="form-control" min="<%= java.time.LocalDate.now() %>" value="<%= esc(dateDisplay) %>" required>
         </div>
 
         <div class="row g-2 align-items-end mb-3">
@@ -121,6 +133,11 @@
         <div class="mb-3">
             <label for="venue" class="form-label fw-semibold">Add Location</label>
             <input type="text" id="venue" name="venue" class="form-control" placeholder="Venue" value="<%= esc(venueDisplay) %>">
+        </div>
+        
+        <div class="mb-3">
+            <label for="capacity" class="form-label fw-semibold">Capacity (max participants)</label>
+            <input type="number" id="capacity" name="capacity" class="form-control" min="1" max="100000" value="<%= esc(capacityDisplay) %>" required>
         </div>
 
         <div class="mb-3">

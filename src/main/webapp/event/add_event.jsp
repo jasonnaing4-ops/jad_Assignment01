@@ -18,7 +18,11 @@
         else if (errCode.equals("badDate")) { errMessage = "Please enter a valid date (YYYY-MM-DD)."; }
         else if (errCode.equals("badTime")) { errMessage = "Please enter valid start and end times."; }
         else if (errCode.equals("endBeforeStart")) { errMessage = "End time must be later than start time."; }
+        else if (errCode.equals("pastTime")) { errMessage = "The start time has already passed today. Please choose a later time."; }
         else if (errCode.equals("dbError")) { errMessage = "Something went wrong saving the event. Please try again."; }
+        else if (errCode.equals("badDate")) { errMessage = "Please enter a valid date (YYYY-MM-DD)."; }
+        else if (errCode.equals("pastDate")) { errMessage = "The event date cannot be in the past."; }  
+        else if (errCode.equals("badCapacity")) { errMessage = "Capacity must be a whole number of at least 1."; }
     }
     String nameValue = request.getParameter("eventName");
     String dateValue = request.getParameter("eventDate");
@@ -26,6 +30,8 @@
     String startTimeValue = request.getParameter("startTime");
     String endTimeValue = request.getParameter("endTime");
     String descriptionValue = request.getParameter("description");
+    String capacityValue = request.getParameter("capacity");
+    if (capacityValue == null) { capacityValue = "50"; }
 %>
 
 <h1 class="h2 text-primary text-center mb-4">Create Event</h1>
@@ -36,12 +42,13 @@
     <div class="card-body p-4">
         <div class="mb-3">
             <label for="eventName" class="form-label fw-semibold">Event Title</label>
-            <input type="text" id="eventName" name="eventName" class="form-control" placeholder="Event Name" value="<%= esc(nameValue) %>" required>
+            <input type="text" id="eventName" name="eventName" class="form-control" placeholder="Event Name - MRT Name" value="<%= esc(nameValue) %>" required>
+            <p>(Suggestion: Event Name - MRT Name)</p>
         </div>
 
         <div class="mb-3">
             <label for="eventDate" class="form-label fw-semibold">Pick Date</label>
-            <input type="date" id="eventDate" name="eventDate" class="form-control" value="<%= esc(dateValue) %>" required>
+            <input type="date" id="eventDate" name="eventDate" class="form-control" min="<%= java.time.LocalDate.now() %>" value="<%= esc(dateValue) %>" required>
         </div>
 
         <div class="row g-2 align-items-end mb-3">
@@ -59,6 +66,11 @@
         <div class="mb-3">
             <label for="venue" class="form-label fw-semibold">Add Location</label>
             <input type="text" id="venue" name="venue" class="form-control" placeholder="Venue" value="<%= esc(venueValue) %>">
+        </div>
+        
+        <div class="mb-3">
+            <label for="capacity" class="form-label fw-semibold">Capacity (max participants)</label>
+            <input type="number" id="capacity" name="capacity" class="form-control" min="1" max="100000" value="<%= esc(capacityValue) %>" required>
         </div>
 
         <div class="mb-3">
