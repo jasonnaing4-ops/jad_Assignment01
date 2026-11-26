@@ -7,6 +7,10 @@
     URL or the form - so a participant can only ever see and edit their own
     details. The form posts to save_my_account.jsp, which forwards back here
     with an errors map if anything is wrong (the typed values are kept).
+    Also shows the participant code as a QR code (plain text, e.g. "P-00007")
+    for staff to scan at events. It is drawn in the browser by the qrcodejs
+    library from the CDN; the code is passed in through an escaped data-code
+    attribute, never written straight into the script.
 --%>
 <%@ include file="/WEB-INF/common/require_participant.jsp" %>
 <%
@@ -64,12 +68,22 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
             <h2 class="h5 mb-3">Account</h2>
-            <dl class="row mb-0">
-                <dt class="col-sm-4 text-muted fw-normal">Username</dt><dd class="col-sm-8 fw-semibold"><%= esc(dbUsername) %></dd>
-                <dt class="col-sm-4 text-muted fw-normal">Participant code</dt><dd class="col-sm-8 fw-semibold"><%= esc(dbCode) %></dd>
-                <dt class="col-sm-4 text-muted fw-normal">Status</dt><dd class="col-sm-8 mb-0"><span class="badge rounded-pill text-bg-success">active</span></dd>
-            </dl>
-            <a href="change_password.jsp" class="btn btn-sm btn-outline-primary mt-3">Change password</a>
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-4">
+                <div class="flex-grow-1">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted fw-normal">Username</dt><dd class="col-sm-8 fw-semibold"><%= esc(dbUsername) %></dd>
+                        <dt class="col-sm-4 text-muted fw-normal">Participant code</dt><dd class="col-sm-8 fw-semibold"><%= esc(dbCode) %></dd>
+                        <dt class="col-sm-4 text-muted fw-normal">Status</dt><dd class="col-sm-8 mb-0"><span class="badge rounded-pill text-bg-success">active</span></dd>
+                    </dl>
+                    <a href="change_password.jsp" class="btn btn-sm btn-outline-primary mt-3">Change password</a>
+                </div>
+                <%-- QR code of the participant code (plain text, e.g. "P-00007"), drawn in the browser --%>
+                <div class="text-center">
+                    <div id="participantQr" class="d-inline-block p-2 bg-white border rounded" data-code="<%= esc(dbCode) %>"
+                         role="img" aria-label="QR code for participant code <%= esc(dbCode) %>"></div>
+                    <div class="small text-muted mt-1">Show this at the event</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -85,5 +99,17 @@
         </div>
     </form>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    // Draw the participant code as a QR code. The code is read from data-code
+    // (already escaped by esc()), so it never goes straight into the script.
+    (function () {
+        var box = document.getElementById("participantQr");
+        if (box && window.QRCode) {
+            new QRCode(box, { text: box.getAttribute("data-code"), width: 140, height: 140 });
+        }
+    })();
+</script>
 
 <%@ include file="/WEB-INF/common/footer.jsp" %>
