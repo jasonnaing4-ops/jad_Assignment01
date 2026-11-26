@@ -80,7 +80,7 @@
             <%@ include file="/WEB-INF/common/participant_fields.jsp" %>
             <div class="d-flex align-items-center gap-3">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
-                <a href="my_account.jsp" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
+                <a href="my_signups.jsp" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
             </div>
         </div>
     </form>
