@@ -63,10 +63,3 @@
     font-weight: bold;
     line-height: 1;
 }
-
-/* Scrolls only the table; sized to fill what's left under the toolbar/tabs */
-.table-scroll {
-    max-height: calc(100vh - 520px);
-    min-height: 260px;
-    overflow-y: auto;
-}

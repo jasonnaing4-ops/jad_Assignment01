@@ -3,13 +3,13 @@
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
     Description: Decision page for both add_event.jsp and edit_event.jsp - no
-    HTML, every path ends in a redirect (section 2). id is blank/absent for a
+    HTML, every path ends in a redirect. id is blank/absent for a
     new event (insert) and present for an existing one (update).
 --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
-    // Step 1: Existence
-    String eventName = request.getParameter("eventName");
+	//Input Extraction & State Preservation: read parameters, detect insert vs. update, and build redirect query string    
+	String eventName = request.getParameter("eventName");
     String eventDateStr = request.getParameter("eventDate");
     String venue = request.getParameter("venue");
     String startTimeStr = request.getParameter("startTime");
@@ -34,7 +34,7 @@
             + "&capacity=" + java.net.URLEncoder.encode(capacityStr == null ? "" : capacityStr, "UTF-8")
             + (isUpdate ? "&id=" + idParam.trim() : "");
 
-    // Step 2: Validate
+ 	// Input Validation & Normalization: verify required fields, date/time rules, capacity limits, and set defaults
     if (eventName.trim().isEmpty() || eventDateStr.trim().isEmpty()
             || startTimeStr.trim().isEmpty() || endTimeStr.trim().isEmpty()) {
         response.sendRedirect(formPage + "?errCode=emptyFields&" + preserveParams);
@@ -49,7 +49,7 @@
         return;
     }
 
-    // <input type="time"> sends HH:mm, java.sql.Time.valueOf wants HH:mm:ss
+ 	// <input type="time"> sends HH:mm, java.sql.Time.valueOf wants HH:mm:ss
     java.sql.Time startTime;
     java.sql.Time endTime;
     try {
@@ -107,7 +107,7 @@
         status = "active";
     }
 
-    // Step 3: Process
+ 	// Database Persistence (Insert / Update): save event changes to MySQL and redirect to event list
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
@@ -145,10 +145,12 @@
 	         ps.setTime(6, endTime);
 	         ps.setString(7, descriptionToSave);
 	         ps.setInt(8, capacity);
+	         ps.executeUpdate();
             response.sendRedirect("list_events.jsp?msg=eventAdded");
             return;
         }
     } catch (Exception e) {
+    	// Error Handling & Cleanup: log exceptions, redirect back with preserved form data, and close connection
         System.err.println("save_event.jsp - " + e);
         response.sendRedirect(formPage + "?errCode=dbError&" + preserveParams);
         return;

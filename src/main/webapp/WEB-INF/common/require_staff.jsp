@@ -11,7 +11,7 @@
     - If there is no userId in the session, redirects to login.jsp (section 2.5).
     - Otherwise re-looks-up the role from the DB by userId (never trusts
       anything other than userId out of the session) and redirects to
-      home.jsp if the signed-in user is not staff.
+      my_signups.jsp if the signed-in user is not staff.
 
     Leaves these local variables behind for the rest of the page to reuse:
       userId     (Integer) - the signed-in user's id

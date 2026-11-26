@@ -16,22 +16,11 @@
         BEFORE this include. Do not include esc.jsp a second time here - it
         would redeclare the method and fail to compile.
       - Must NOT already have local variables named ddConn/ddStmt/ddRs/ddSql/
-        ddConnURL/ddDriver in scope at this point (this file uses dd-prefixed
-        names, and its OWN copy of the driver/connection string, precisely so
-        it is safe to drop into a page that already declared jdbcDriver/connURL
-        itself via dbconfig.jsp - it never includes dbconfig.jsp, to avoid a
-        duplicate-variable compile error on pages that already did).
-
-    If you change the DB credentials in common/dbconfig.jsp, update the copy
-    below too (small, deliberate duplication - this file has to be safe to
-    drop into ANY page, including ones that already included dbconfig.jsp).
-
-    The query has no user input in it (status = 'active' is a hard-coded
-    literal), so a plain Statement is acceptable here per section 6 of the
-    coding conventions.
+        ddConnURL/ddDriver in scope at this point 
 --%>
 <%@ page import="java.sql.*" %>
 <%
+	//Active Events Query & Option Rendering: fetch active events ordered by date and output HTML <option> tags
     Connection ddConn = null;
     try {
         String ddDriver = "com.mysql.cj.jdbc.Driver";
@@ -48,6 +37,7 @@
 <%
         }
     } catch (Exception e) {
+    	// Error Fallback & Cleanup: render disabled placeholder option on DB failure and close connection
         System.err.println("event_dropdown.jsp - " + e);
 %>
         <option value="" disabled>-- events unavailable, try again later --</option>

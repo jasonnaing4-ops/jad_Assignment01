@@ -3,29 +3,29 @@
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
     Description: Decision page for login - writes no HTML, every path ends in
-    a redirect (section 2). Checks the submitted credentials against
+    a redirect. Checks the submitted credentials against
     users.password_hash with PasswordUtil (bcrypt) and starts the session
-    (userId only, section 2.5) on success.
+  	success.
 --%>
 <%@ include file="/WEB-INF/common/dbconfig.jsp" %>
 <%
-    // Step 1: Existence
-    String username = request.getParameter("username");
+//Input Validation: ensure username and password exist and are not blank    
+	String username = request.getParameter("username");
     String password = request.getParameter("password");
     if (username == null || password == null) {
         response.sendRedirect("login.jsp");
         return;
     }
 
-    // Step 2: Validate
     if (username.trim().isEmpty() || password.trim().isEmpty()) {
         response.sendRedirect("login.jsp?errCode=emptyFields");
         return;
     }
 
-    // Step 3: Process
-    Connection conn = null;
+ // Database Lookup: query users table for the matching username    
+ 	Connection conn = null;
     try {
+    	// Load JDBC driver and open a connection to the database
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
 
@@ -34,6 +34,7 @@
         ps.setString(1, username.trim());
         ResultSet rs = ps.executeQuery();
 
+     // Verification & Redirect: check password hash and status, start session, and route by role
         if (rs.next()) {
             int foundUserId = rs.getInt("user_id");
             String storedHash = rs.getString("password_hash");
@@ -41,12 +42,11 @@
             String role = rs.getString("role");
             boolean mustChange = rs.getBoolean("must_change_password");
 
-            // Same generic message for "no such user" and "wrong password" so a
-            // login attempt can't be used to find out which usernames exist.
             if (!util.PasswordUtil.verify(password, storedHash)) {
                 response.sendRedirect("login.jsp?errCode=badLogin");
                 return;
             }
+         
             if (!"active".equals(status)) {
                 response.sendRedirect("login.jsp?errCode=accountInactive");
                 return;
@@ -67,6 +67,7 @@
             return;
         }
     } catch (Exception e) {
+    	// Error Handling & Cleanup: log exceptions, redirect on error, and close connection
         System.err.println("login_okay.jsp - " + e);
         response.sendRedirect("login.jsp?errCode=dbError");
         return;

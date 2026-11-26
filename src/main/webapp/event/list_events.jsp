@@ -2,25 +2,25 @@
 <%--
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
-    Description: Staff-only event list (section 3.3). Shows every event with
+    Description: Staff-only event list. Shows every event with
     its status and gives Edit / Activate-Deactivate / Delete actions per row.
     Activate is a direct one-click action (reversible, no confirmation
     needed); Deactivate and Delete go through confirm_event_action.jsp first
-    (L03c list -> confirm -> action -> redirect pattern, section 7).
 
     Also shows 4 stat-tabs (Completed / Ongoing / Upcoming / Inactive) with a
     count on each, used both as the filter for the table below and as an
     at-a-glance summary. Completed/Ongoing/Upcoming are all status='active'
     events, split by comparing event_date to today's date (events only have a
     single date, not a start/end range); Inactive is status='inactive'
-    regardless of date. Defaults to "upcoming" if no/invalid filter param is
-    given. A GET search box filters further by event_name (LIKE match),
-    staying within whichever tab is currently selected.
+    regardless of date.
 --%>
+
+<%-- Access Control & Header: verify staff session and render global navigation --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
 <%
+	//Alert & Query State Setup: map redirect flags to banners and parse filter, search, sort, and page params
     String msg = request.getParameter("msg");
     String infoMessage = null;
     if (msg != null) {
@@ -120,9 +120,7 @@
 <% if (errMessage != null) { %><div class="alert alert-danger"><%= esc(errMessage) %></div><% } %>
 
 <%
-    // Self-contained block with its own connection, kept separate from the
-    // main listing query below - so a failure here (counts just fall back to
-    // 0) can never interfere with the main table's own try/catch/finally.
+	//Statistics & Pagination Calculation: query category totals, auto-select tab on search, and compute total pages
     int allCount = 0, completedCount = 0, ongoingCount = 0, upcomingCount = 0, inactiveCount = 0;
     Connection statsConn = null;
     try {
@@ -147,9 +145,7 @@
 
         countRs = countStmt.executeQuery("SELECT COUNT(*) FROM events WHERE status = 'inactive'");
         if (countRs.next()) { inactiveCount = countRs.getInt(1); }
-        
-        countRs = countStmt.executeQuery("SELECT COUNT(*) FROM events WHERE status = 'inactive'");
-        if (countRs.next()) { inactiveCount = countRs.getInt(1); }
+       
 
         // Searching: find which categories the matches fall in. All in one -> jump
         // to that tab; spread out (or none) -> highlight "All"
@@ -284,7 +280,7 @@
 </div>
 
 
-<div class="table-responsive table-scroll">
+<div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
    <thead class="table-light sticky-top" style="z-index: 2;">
         <tr>

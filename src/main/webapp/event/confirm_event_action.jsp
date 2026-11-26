@@ -3,14 +3,15 @@
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
     Description: Confirm step before a destructive event action (delete or
-    deactivate) - section 7 (L03c pattern): list -> confirm -> action ->
-    redirect back to list?msg=. Reached only by the small POST forms on
+    deactivate) Reached only by the small POST forms on
     list_events.jsp. Looks the event up, checks whether it has registrations,
     then shows a locked confirm form that posts on to event_status_action.jsp.
 --%>
+
+<%-- Access Control: verify staff session and load database configuration --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
-    // Step 1: Existence
+	//Parameter Validation: ensure event ID and mode exist, parse eventId, and whitelist delete/deactivate
     String idParam = request.getParameter("id");
     String mode = request.getParameter("mode");
     if (idParam == null || mode == null) {
@@ -18,7 +19,7 @@
         return;
     }
 
-    // Step 2: Validate
+    
     int eventId;
     try {
         eventId = Integer.parseInt(idParam.trim());
@@ -31,7 +32,7 @@
         return;
     }
 
-    // Step 3: Process - look the event up and check for registrations
+ 	// Database Lookup & Registration Check: fetch event details and count active registrations
     String eventName = null;
     String eventStatus = null;
     java.sql.Date eventDate = null;
@@ -71,12 +72,15 @@
         }
     }
 
+ 	// Display State Formatting: determine delete eligibility and format date/status strings
     boolean blockDelete = mode.equals("delete") && registrationCount > 0;
     boolean isDelete = mode.equals("delete");
     boolean isActive = "active".equals(eventStatus);
     String prettyDate = new java.text.SimpleDateFormat("d MMMM yyyy").format(eventDate);
     String prettyStatus = eventStatus.substring(0, 1).toUpperCase() + eventStatus.substring(1);
 %>
+
+<%-- Header & Confirmation UI: render event summary card, warning banner, and form posting to event_status_action.jsp --%>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
 <h1 class="h2 fw-bold text-primary mb-2"><%= isDelete ? "Delete" : "Deactivate" %> This Event?</h1>
