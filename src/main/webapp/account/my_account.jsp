@@ -57,9 +57,8 @@
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%@ include file="/WEB-INF/common/form_helpers.jsp" %>
 
+<div class="mx-auto" style="max-width: 720px;">
 <h1 class="h2 text-primary mb-3">My Account</h1>
-
-<div style="max-width: 720px;">
     <%@ include file="/WEB-INF/common/messages.jsp" %>
 
     <div class="card shadow-sm mb-4">
@@ -70,6 +69,7 @@
                 <dt class="col-sm-4 text-muted fw-normal">Participant code</dt><dd class="col-sm-8 fw-semibold"><%= esc(dbCode) %></dd>
                 <dt class="col-sm-4 text-muted fw-normal">Status</dt><dd class="col-sm-8 mb-0"><span class="badge rounded-pill text-bg-success">active</span></dd>
             </dl>
+            <a href="change_password.jsp" class="btn btn-sm btn-outline-primary mt-3">Change password</a>
         </div>
     </div>
 

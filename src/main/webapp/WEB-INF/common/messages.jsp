@@ -31,9 +31,13 @@
     String msgAddedCode = (String) session.getAttribute("flashAddedCode");
     String msgAddedName = (String) session.getAttribute("flashAddedName");
     String msgAddedEvent = (String) session.getAttribute("flashAddedEvent");
+    String msgAddedUsername = (String) session.getAttribute("flashAddedUsername");
+    String msgDemoPassword = (String) session.getAttribute("flashDemoPassword");
     session.removeAttribute("flashAddedCode");
     session.removeAttribute("flashAddedName");
     session.removeAttribute("flashAddedEvent");
+    session.removeAttribute("flashAddedUsername");
+    session.removeAttribute("flashDemoPassword");
     // "Participant P-00007 (Tan Mei Ling)" when the details are there, otherwise just "Participant"
     String msgWho = "Participant";
     if (msgAddedCode != null) {
@@ -44,16 +48,18 @@
     String msgError = null;
 
     if (msgCode != null) {
-        if (msgCode.equals("participantAdded")) { msgInfo = msgWho + " added. Give them their username and password so they can log in."; }
+        if (msgCode.equals("participantAdded")) { msgInfo = msgWho + " added."; }
         else if (msgCode.equals("participantAddedSignedUp")) {
             msgInfo = msgWho + " added and signed up for " + (msgAddedEvent != null ? msgAddedEvent : "the event") + ".";
         }
         else if (msgCode.equals("participantUpdated")) { msgInfo = "Participant details saved."; }
         else if (msgCode.equals("participantDeactivated")) { msgInfo = "Account deactivated. The participant can no longer log in."; }
         else if (msgCode.equals("participantActivated")) { msgInfo = "Account activated. The participant can log in again."; }
+        else if (msgCode.equals("participantDeleted")) { msgInfo = "Participant deleted, along with their login and sign-ups."; }
         else if (msgCode.equals("detailsSaved")) { msgInfo = "Your details were saved."; }
         else if (msgCode.equals("signedUp")) { msgInfo = "You have signed up for the event."; }
         else if (msgCode.equals("withdrawn")) { msgInfo = "You have withdrawn from the event."; }
+        else if (msgCode.equals("passwordChanged")) { msgInfo = "Your password has been changed."; }
     }
 
     if (msgErrCode != null) {
@@ -62,6 +68,7 @@
         else if (msgErrCode.equals("dbError")) { msgError = "Something went wrong. Please try again."; }
         else if (msgErrCode.equals("alreadyActive")) { msgError = "That account is already active."; }
         else if (msgErrCode.equals("alreadyInactive")) { msgError = "That account is already deactivated."; }
+        else if (msgErrCode.equals("hasUpcomingSignups")) { msgError = "That participant is still signed up for upcoming or ongoing events and cannot be deactivated."; }
         else if (msgErrCode.equals("eventNotFound")) { msgError = "That event could not be found."; }
         else if (msgErrCode.equals("eventClosed")) { msgError = "That event is not open for sign-ups."; }
         else if (msgErrCode.equals("eventPast")) { msgError = "That event has already taken place."; }
@@ -74,6 +81,15 @@
 %>
 <% if (msgInfo != null) { %>
     <div class="alert alert-success" role="status"><%= esc(msgInfo) %></div>
+<% } %>
+<% if (msgDemoPassword != null && msgCode != null && msgCode.startsWith("participantAdded")) { %>
+    <%-- Shown once only: it is removed from the session above, so a refresh will not show it again --%>
+    <div class="alert alert-warning" role="status">
+        <p class="fw-semibold mb-1">Login details for the new participant - note them down now, they are shown only once:</p>
+        <p class="mb-1">Username: <span class="font-monospace fw-semibold"><%= esc(msgAddedUsername) %></span></p>
+        <p class="mb-1">Demo password: <span class="font-monospace fw-semibold"><%= esc(msgDemoPassword) %></span></p>
+        <p class="mb-0 small">The participant must choose a new password the first time they log in.</p>
+    </div>
 <% } %>
 <% if (msgError != null) { %>
     <div class="alert alert-danger" role="alert"><%= esc(msgError) %></div>

@@ -29,8 +29,7 @@
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
 
-        
-        String sql = "SELECT user_id, password_hash, status, role FROM users WHERE username = ?";        
+        String sql = "SELECT user_id, password_hash, status, role, must_change_password FROM users WHERE username = ?";
         PreparedStatement ps = conn.prepareStatement(sql);
         ps.setString(1, username.trim());
         ResultSet rs = ps.executeQuery();
@@ -41,6 +40,7 @@
             String storedHash = rs.getString("password_hash");
             String status = rs.getString("status");
             String role = rs.getString("role");
+            boolean mustChange = rs.getBoolean("must_change_password");
 
             if (!util.PasswordUtil.verify(password, storedHash)) {
                 response.sendRedirect("login.jsp?errCode=badLogin");
@@ -51,11 +51,13 @@
                 response.sendRedirect("login.jsp?errCode=accountInactive");
                 return;
             }
-
+            request.changeSessionId();
             session.setAttribute("userId", foundUserId);
             // Staff go straight to Event Management; participants to their own page
             if ("staff".equals(role)) {
                 response.sendRedirect("../event/list_events.jsp");
+            } else if (mustChange) {
+                response.sendRedirect("../account/change_password.jsp");
             } else {
             	response.sendRedirect("../account/my_signups.jsp");
             }

@@ -18,6 +18,12 @@
     - Protected pages are marked "no-store", so Back after logout cannot show
       a cached copy.
 
+    - Forced password change: while users.must_change_password = 1 (a staff-
+      created account still on its demo password) every participant page
+      redirects to account/change_password.jsp. Only that page and its decision
+      page save_password.jsp are let through, so typing another page's URL
+      cannot skip the change.
+
     Leaves these local variables behind for the rest of the page to reuse:
       userId     (Integer) - the signed-in user's id
       jdbcDriver, connURL  - from dbconfig.jsp, already included here
@@ -37,17 +43,19 @@
 <%
     String guardRole = null;
     String guardStatus = null;
+    boolean guardMustChange = false;
     Connection guardConn = null;
     try {
         Class.forName(jdbcDriver);
         guardConn = DriverManager.getConnection(connURL);
-        String guardSql = "SELECT role, status FROM users WHERE user_id = ?";
+        String guardSql = "SELECT role, status, must_change_password FROM users WHERE user_id = ?";
         PreparedStatement guardPs = guardConn.prepareStatement(guardSql);
         guardPs.setInt(1, userId);
         ResultSet guardRs = guardPs.executeQuery();
         if (guardRs.next()) {
             guardRole = guardRs.getString("role");
             guardStatus = guardRs.getString("status");
+            guardMustChange = guardRs.getBoolean("must_change_password");
         }
     } catch (Exception e) {
         System.err.println("require_participant.jsp - " + e);
@@ -64,6 +72,15 @@
     }
     if (!"participant".equals(guardRole)) {
         response.sendRedirect(request.getContextPath() + "/event/list_events.jsp");
+        return;
+    }
+
+    // Still on a demo password: only the change-password pages may be used
+    String guardPath = request.getServletPath();
+    boolean guardOnPasswordPage = guardPath.equals("/account/change_password.jsp")
+                               || guardPath.equals("/account/save_password.jsp");
+    if (guardMustChange && !guardOnPasswordPage) {
+        response.sendRedirect(request.getContextPath() + "/account/change_password.jsp");
         return;
     }
 

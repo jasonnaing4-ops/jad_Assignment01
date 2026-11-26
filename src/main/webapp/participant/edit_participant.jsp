@@ -93,6 +93,7 @@
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%@ include file="/WEB-INF/common/form_helpers.jsp" %>
 
+<div class="mx-auto" style="max-width: 720px;">
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="list_participants.jsp">Participants</a></li>
@@ -101,7 +102,6 @@
 </nav>
 <h1 class="h2 text-primary mb-3">Edit Participant</h1>
 
-<div style="max-width: 720px;">
     <%@ include file="/WEB-INF/common/messages.jsp" %>
 
     <div class="card shadow-sm mb-4">

@@ -13,6 +13,9 @@ public class PasswordUtil {
 
 	// Cost factor: 10 means 2^10 rounds of hashing (slow on purpose)
 	private static final int LOG_ROUNDS = 10;
+	
+	// The demo password every staff-created participant starts with.
+	public static final String DEMO_PASSWORD = "demo123";
 
 	// Use at sign-up / when staff create an account.
 	// Returns the 60-character string to store in users.password_hash

@@ -22,9 +22,9 @@
 <div class="row g-3 mb-3">
     <div class="col-md-6">
         <label for="contactNo" class="form-label fw-semibold">Contact Number <span class="text-danger">*</span></label>
-        <input type="tel" id="contactNo" name="contactNo" maxlength="9" inputmode="numeric" autocomplete="tel"
+        <input type="tel" id="contactNo" name="contactNo" maxlength="8" pattern="[689][0-9]{7}" inputmode="numeric" autocomplete="tel"
                class="form-control<%= invalidClass(errors, "contactNo") %>" value="<%= esc(fContactNo) %>" <%= errAria(errors, "contactNo") %>>
-        <div class="form-text">8 digits, e.g. 91234567</div>
+        <div class="form-text">8 digits, no spaces, e.g. 91234567</div>
         <%= errText(errors, "contactNo") %>
     </div>
     <div class="col-md-6">
