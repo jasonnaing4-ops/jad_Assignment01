@@ -8,11 +8,13 @@
 --%>
 <%@ include file="/WEB-INF/common/dbconfig.jsp" %>
 <%
+	//Check if the user already has an active session
     if (session.getAttribute("userId") != null) {
     	Integer userId = (Integer) session.getAttribute("userId");
     	String role = null;
     	Connection conn = null;
         try {
+        	// Establish database connection and fetch the user's current role
             Class.forName(jdbcDriver);
             conn = DriverManager.getConnection(connURL);
 
@@ -24,6 +26,7 @@
                 role = rs.getString("role");
             }
 
+         // Redirect already-logged-in users to their respective dashboards
             if ("participant".equals(role)) {
     			response.sendRedirect("../account/my_signups.jsp");
     			return;
@@ -35,16 +38,20 @@
             }
             
         } catch (Exception e) {
+        	// Log any database or connection errors to the server console
             System.err.println("home.jsp - " + e);
         } finally {
+        	// Ensure the database connection is closed to prevent resource leaks
             if (conn != null) {
                 try { conn.close(); } catch (SQLException e) { System.err.println("Error closing connection: " + e); }
             }
     }
    }
 %>
+<%-- Include global navigation bar and page layout header --%>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%
+//Map URL error codes (from login_okay.jsp or auth checks) to user-friendly error messages
     String errCode = request.getParameter("errCode");
     String errMessage = null;
     if (errCode != null) {
@@ -63,6 +70,7 @@
         }
     }
 
+ // Map URL status messages to user-friendly informational alerts
     String msg = request.getParameter("msg");
     String infoMessage = null;
     if (msg != null) {

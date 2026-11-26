@@ -23,12 +23,14 @@
         return;
     }
 
-    // Step 3: Process
+    // Step 3: Authentication and Session Initialization
     Connection conn = null;
     try {
+    	// Load JDBC driver and open a connection to the database
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
 
+        
         String sql = "SELECT user_id, password_hash, status, role FROM users WHERE username = ?";        
         PreparedStatement ps = conn.prepareStatement(sql);
         ps.setString(1, username.trim());
@@ -40,12 +42,13 @@
             String status = rs.getString("status");
             String role = rs.getString("role");
 
-            // Same generic message for "no such user" and "wrong password" so a
-            // login attempt can't be used to find out which usernames exist.
+         // Verify submitted plaintext password against the stored bcrypt hash.
             if (!util.PasswordUtil.verify(password, storedHash)) {
                 response.sendRedirect("login.jsp?errCode=badLogin");
                 return;
             }
+         
+         // Block login if the account has been deactivated by staff
             if (!"active".equals(status)) {
                 response.sendRedirect("login.jsp?errCode=accountInactive");
                 return;
