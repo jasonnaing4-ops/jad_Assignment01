@@ -234,6 +234,14 @@
                             <button type="submit" class="btn btn-sm btn-primary">Activate</button>
                         </form>
                     <% } %>
+                    <form method="post" action="confirm_participant_action.jsp" class="m-0">
+                        <input type="hidden" name="id" value="<%= rowId %>">
+                        <input type="hidden" name="mode" value="delete">
+                        <input type="hidden" name="filter" value="<%= esc(filter) %>">
+                        <input type="hidden" name="q" value="<%= esc(backQ) %>">
+                        <input type="hidden" name="p" value="<%= pageNum %>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
                 </div>
             </td>
         </tr>

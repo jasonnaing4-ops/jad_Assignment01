@@ -55,6 +55,7 @@
         else if (msgCode.equals("participantUpdated")) { msgInfo = "Participant details saved."; }
         else if (msgCode.equals("participantDeactivated")) { msgInfo = "Account deactivated. The participant can no longer log in."; }
         else if (msgCode.equals("participantActivated")) { msgInfo = "Account activated. The participant can log in again."; }
+        else if (msgCode.equals("participantDeleted")) { msgInfo = "Participant deleted, along with their login and sign-ups."; }
         else if (msgCode.equals("detailsSaved")) { msgInfo = "Your details were saved."; }
         else if (msgCode.equals("signedUp")) { msgInfo = "You have signed up for the event."; }
         else if (msgCode.equals("withdrawn")) { msgInfo = "You have withdrawn from the event."; }

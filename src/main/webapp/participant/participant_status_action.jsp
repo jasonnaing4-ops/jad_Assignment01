@@ -2,13 +2,17 @@
 <%--
     Author: Bhone Theinkha Naing (Jason) (<admin no.>)
     Date: 23/11/2026
-    Description: Action page for activate / deactivate - no HTML, every path
-    ends in a redirect. Reachable from list_participants.jsp (activate only)
-    or confirm_participant_action.jsp (deactivate). POST only, so a link or a
-    refresh cannot change an account. The account status lives on the users
-    row, and only participant accounts can be changed here - never staff.
-    Deactivating keeps every record (nothing is deleted), so it can be undone,
-    and require_participant.jsp logs the participant out on their next click.
+    Description: Action page for activate / deactivate / delete - no HTML,
+    every path ends in a redirect. Reachable from list_participants.jsp
+    (activate only) or confirm_participant_action.jsp (deactivate, delete).
+    POST only, so a link or a refresh cannot change an account. The account
+    status lives on the users row, and only participant accounts can be
+    changed here - never staff.
+    Deactivating keeps every record (nothing is deleted), so it can be undone.
+    Deleting removes the users row; the foreign keys (ON DELETE CASCADE) also
+    remove the participants row and all of their event_registrations.
+    Either way require_participant.jsp logs the participant out on their
+    next click.
 --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
@@ -34,7 +38,7 @@
 
     // Step 2: Validate
     int participantId = util.Validator.parseId(idParam);
-    if (participantId < 0 || (!mode.equals("activate") && !mode.equals("deactivate"))) {
+    if (participantId < 0 || !(mode.equals("activate") || mode.equals("deactivate") || mode.equals("delete"))) {
         response.sendRedirect("list_participants.jsp?errCode=invalidAction&" + backPart);
         return;
     }
@@ -53,6 +57,16 @@
         ResultSet findRs = findPs.executeQuery();
         if (!findRs.next()) {
             response.sendRedirect("list_participants.jsp?errCode=notFound&" + backPart);
+            return;
+        }
+        if (mode.equals("delete")) {
+            // Deleting the users row cascades to participants and event_registrations (FKs)
+            String delSql = "DELETE u FROM users u JOIN participants p ON p.user_id = u.user_id "
+                          + "WHERE p.participant_id = ? AND u.role = 'participant'";
+            PreparedStatement delPs = conn.prepareStatement(delSql);
+            delPs.setInt(1, participantId);
+            delPs.executeUpdate();
+            response.sendRedirect("list_participants.jsp?msg=participantDeleted&" + backPart);
             return;
         }
         if (newStatus.equals(findRs.getString("status"))) {

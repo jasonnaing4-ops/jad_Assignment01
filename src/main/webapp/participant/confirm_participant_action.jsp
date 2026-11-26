@@ -3,12 +3,14 @@
     Author: Bhone Theinkha Naing (Jason) (<admin no.>)
     Date: 23/11/2026
     Description: Confirm step before a participant's account is deactivated
-    (section 3.2: deactivate only after a clear confirmation step; section 7
-    list -> confirm -> action -> redirect pattern, same as
-    event/confirm_event_action.jsp). Reached only by the small POST form on
+    or deleted (section 3.2: deactivate only after a clear confirmation step;
+    section 7 list -> confirm -> action -> redirect pattern, same as
+    event/confirm_event_action.jsp). Reached only by the small POST forms on
     list_participants.jsp. Looks the participant up, shows who it is and how
-    many upcoming sign-ups they have, then a locked form that posts on to
+    many sign-ups they have, then a locked form that posts on to
     participant_status_action.jsp. Nothing changes until Yes is pressed.
+    Delete is allowed for active and inactive participants alike, and warns
+    that it is permanent.
 --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
@@ -34,14 +36,15 @@
 
     // Step 2: Validate
     int participantId = util.Validator.parseId(idParam);
-    if (participantId < 0 || !mode.equals("deactivate")) {
+    boolean isDelete = mode.equals("delete");
+    if (participantId < 0 || !(mode.equals("deactivate") || isDelete)) {
         response.sendRedirect("list_participants.jsp?errCode=invalidAction&" + backPart);
         return;
     }
 
     // Step 3: Process - look the participant up
     String name = null, code = null, email = null, status = null;
-    int upcomingCount = 0;
+    int upcomingCount = 0, totalCount = 0;
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
@@ -70,6 +73,15 @@
         if (countRs.next()) {
             upcomingCount = countRs.getInt("cnt");
         }
+
+        // every sign-up (any date or status) - all of them go if the participant is deleted
+        PreparedStatement allPs = conn.prepareStatement(
+                "SELECT COUNT(*) AS cnt FROM event_registrations WHERE participant_id = ?");
+        allPs.setInt(1, participantId);
+        ResultSet allRs = allPs.executeQuery();
+        if (allRs.next()) {
+            totalCount = allRs.getInt("cnt");
+        }
     } catch (Exception e) {
         System.err.println("confirm_participant_action.jsp - " + e);
         response.sendRedirect("list_participants.jsp?errCode=dbError&" + backPart);
@@ -80,16 +92,16 @@
         }
     }
 
-    if (!"active".equals(status)) {
+    if (!isDelete && !"active".equals(status)) {
         response.sendRedirect("list_participants.jsp?errCode=alreadyInactive&" + backPart);
         return;
     }
 %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
-<h1 class="h2 text-primary mb-4">Confirm Deactivate Participant</h1>
+<div class="mx-auto" style="max-width: 640px;">
+    <h1 class="h2 text-primary mb-4"><%= isDelete ? "Confirm Delete Participant" : "Confirm Deactivate Participant" %></h1>
 
-<div style="max-width: 640px;">
     <dl class="row">
         <dt class="col-sm-4 text-muted fw-normal">Name</dt><dd class="col-sm-8 fw-semibold"><%= esc(name) %></dd>
         <dt class="col-sm-4 text-muted fw-normal">Participant code</dt><dd class="col-sm-8"><%= esc(code) %></dd>
@@ -97,19 +109,27 @@
         <dt class="col-sm-4 text-muted fw-normal">Upcoming sign-ups</dt><dd class="col-sm-8"><%= upcomingCount %> event(s)</dd>
     </dl>
 
-    <div class="alert alert-warning">
-        <%= esc(name) %> will no longer be able to log in. Their details and sign-ups are kept,
-        and you can activate the account again at any time from the participant list.
-    </div>
+    <% if (isDelete) { %>
+        <div class="alert alert-danger">
+            This permanently deletes <%= esc(name) %>'s details, login and all <%= totalCount %> event sign-up(s).
+            <strong>This cannot be undone.</strong> To keep the records, use Deactivate instead.
+        </div>
+        <p>Are you sure you want to delete this participant?</p>
+    <% } else { %>
+        <div class="alert alert-warning">
+            <%= esc(name) %> will no longer be able to log in. Their details and sign-ups are kept,
+            and you can activate the account again at any time from the participant list.
+        </div>
+        <p>Are you sure you want to deactivate this account?</p>
+    <% } %>
 
-    <p>Are you sure you want to deactivate this account?</p>
     <form method="post" action="participant_status_action.jsp">
         <input type="hidden" name="id" value="<%= participantId %>">
-        <input type="hidden" name="mode" value="deactivate">
+        <input type="hidden" name="mode" value="<%= isDelete ? "delete" : "deactivate" %>">
         <input type="hidden" name="filter" value="<%= esc(backFilter) %>">
         <input type="hidden" name="q" value="<%= esc(backQ) %>">
         <input type="hidden" name="p" value="<%= backPage %>">
-        <button type="submit" class="btn btn-danger">Yes, Deactivate</button>
+        <button type="submit" class="btn btn-danger"><%= isDelete ? "Yes, Delete Permanently" : "Yes, Deactivate" %></button>
     </form>
     <a href="list_participants.jsp?<%= esc(backPart) %>" class="btn btn-link text-secondary text-decoration-none px-0 mt-2">Cancel</a>
 </div>
