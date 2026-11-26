@@ -1,4 +1,4 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.sql.*" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.sql.*, java.util.*" %>
 <%--
     Author: Bhone Theinkha Naing (Jason) (<admin no.>)
     Date: 23/11/2026
@@ -10,7 +10,10 @@
     many sign-ups they have, then a locked form that posts on to
     participant_status_action.jsp. Nothing changes until Yes is pressed.
     Delete is allowed for active and inactive participants alike, and warns
-    that it is permanent.
+    that it is permanent. Deactivate is blocked (no Yes button) while the
+    participant is still signed up for an upcoming or ongoing event - the
+    events are listed so staff can see why. participant_status_action.jsp
+    checks this again, so a stale or forged form cannot get round it.
 --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
@@ -45,6 +48,7 @@
     // Step 3: Process - look the participant up
     String name = null, code = null, email = null, status = null;
     int upcomingCount = 0, totalCount = 0;
+    List<String> upcoming = new ArrayList<>();   // "Event name (date)" of upcoming/ongoing sign-ups
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
@@ -65,14 +69,17 @@
             return;
         }
 
-        String countSql = "SELECT COUNT(*) AS cnt FROM event_registrations r JOIN events e ON e.event_id = r.event_id "
-                        + "WHERE r.participant_id = ? AND r.status = 'registered' AND e.event_date >= CURDATE()";
-        PreparedStatement countPs = conn.prepareStatement(countSql);
-        countPs.setInt(1, participantId);
-        ResultSet countRs = countPs.executeQuery();
-        if (countRs.next()) {
-            upcomingCount = countRs.getInt("cnt");
+        // upcoming and ongoing sign-ups (today or later) - these block a deactivation
+        String upSql = "SELECT e.event_name, e.event_date FROM event_registrations r JOIN events e ON e.event_id = r.event_id "
+                     + "WHERE r.participant_id = ? AND r.status = 'registered' AND e.event_date >= CURDATE() "
+                     + "ORDER BY e.event_date, e.event_id";
+        PreparedStatement upPs = conn.prepareStatement(upSql);
+        upPs.setInt(1, participantId);
+        ResultSet upRs = upPs.executeQuery();
+        while (upRs.next()) {
+            upcoming.add(upRs.getString("event_name") + " (" + upRs.getDate("event_date") + ")");
         }
+        upcomingCount = upcoming.size();
 
         // every sign-up (any date or status) - all of them go if the participant is deleted
         PreparedStatement allPs = conn.prepareStatement(
@@ -96,6 +103,7 @@
         response.sendRedirect("list_participants.jsp?errCode=alreadyInactive&" + backPart);
         return;
     }
+    boolean blockDeactivate = !isDelete && upcomingCount > 0;
 %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
@@ -115,6 +123,15 @@
             <strong>This cannot be undone.</strong> To keep the records, use Deactivate instead.
         </div>
         <p>Are you sure you want to delete this participant?</p>
+    <% } else if (blockDeactivate) { %>
+        <div class="alert alert-danger" role="alert">
+            <p class="mb-1"><%= esc(name) %> cannot be deactivated while still signed up for
+               <%= upcomingCount %> upcoming or ongoing event(s):</p>
+            <ul class="mb-1">
+                <% for (String ev : upcoming) { %><li><%= esc(ev) %></li><% } %>
+            </ul>
+            <p class="mb-0">They must withdraw from these events first (or wait until the events are over).</p>
+        </div>
     <% } else { %>
         <div class="alert alert-warning">
             <%= esc(name) %> will no longer be able to log in. Their details and sign-ups are kept,
@@ -123,6 +140,7 @@
         <p>Are you sure you want to deactivate this account?</p>
     <% } %>
 
+    <% if (!blockDeactivate) { %>
     <form method="post" action="participant_status_action.jsp">
         <input type="hidden" name="id" value="<%= participantId %>">
         <input type="hidden" name="mode" value="<%= isDelete ? "delete" : "deactivate" %>">
@@ -131,7 +149,8 @@
         <input type="hidden" name="p" value="<%= backPage %>">
         <button type="submit" class="btn btn-danger"><%= isDelete ? "Yes, Delete Permanently" : "Yes, Deactivate" %></button>
     </form>
-    <a href="list_participants.jsp?<%= esc(backPart) %>" class="btn btn-link text-secondary text-decoration-none px-0 mt-2">Cancel</a>
+    <% } %>
+    <a href="list_participants.jsp?<%= esc(backPart) %>" class="btn btn-link text-secondary text-decoration-none px-0 mt-2"><%= blockDeactivate ? "Back to participants" : "Cancel" %></a>
 </div>
 
 <%@ include file="/WEB-INF/common/footer.jsp" %>

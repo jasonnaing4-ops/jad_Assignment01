@@ -68,6 +68,7 @@
         else if (msgErrCode.equals("dbError")) { msgError = "Something went wrong. Please try again."; }
         else if (msgErrCode.equals("alreadyActive")) { msgError = "That account is already active."; }
         else if (msgErrCode.equals("alreadyInactive")) { msgError = "That account is already deactivated."; }
+        else if (msgErrCode.equals("hasUpcomingSignups")) { msgError = "That participant is still signed up for upcoming or ongoing events and cannot be deactivated."; }
         else if (msgErrCode.equals("eventNotFound")) { msgError = "That event could not be found."; }
         else if (msgErrCode.equals("eventClosed")) { msgError = "That event is not open for sign-ups."; }
         else if (msgErrCode.equals("eventPast")) { msgError = "That event has already taken place."; }

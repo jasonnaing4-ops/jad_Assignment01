@@ -73,6 +73,19 @@
             response.sendRedirect("list_participants.jsp?errCode=" + (mode.equals("activate") ? "alreadyActive" : "alreadyInactive") + "&" + backPart);
             return;
         }
+        // Checked again here (not only on the confirm page): no deactivation while the
+        // participant is still signed up for an upcoming or ongoing event
+        if (mode.equals("deactivate")) {
+            PreparedStatement upPs = conn.prepareStatement(
+                    "SELECT COUNT(*) FROM event_registrations r JOIN events e ON e.event_id = r.event_id "
+                  + "WHERE r.participant_id = ? AND r.status = 'registered' AND e.event_date >= CURDATE()");
+            upPs.setInt(1, participantId);
+            ResultSet upRs = upPs.executeQuery();
+            if (upRs.next() && upRs.getInt(1) > 0) {
+                response.sendRedirect("list_participants.jsp?errCode=hasUpcomingSignups&" + backPart);
+                return;
+            }
+        }
 
         String sql = "UPDATE users u JOIN participants p ON p.user_id = u.user_id "
                    + "SET u.status = ? WHERE p.participant_id = ? AND u.role = 'participant'";
