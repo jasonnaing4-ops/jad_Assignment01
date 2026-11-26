@@ -24,7 +24,7 @@
 --%>
 <%@ include file="/WEB-INF/common/require_participant.jsp" %>
 <%
-    // {event_id, name, date, start-end, venue, state}   state: upcoming / ongoing / past / inactive
+    // {event_id, name, date, start-end, venue, state, description}   state: upcoming / ongoing / past / inactive
     List<String[]> joined = new ArrayList<>();
     // {event_id, name, date, start-end, venue, description}
     List<String[]> open = new ArrayList<>();
@@ -137,7 +137,7 @@
         openPages = Math.max(1, (openTotal + openPageSize - 1) / openPageSize);
         if (openPage > openPages) { openPage = openPages; }
 
-        String joinedSql = "SELECT e.event_id, e.event_name, e.event_date, e.start_time, e.end_time, e.venue, e.status, "
+        String joinedSql = "SELECT e.event_id, e.event_name, e.event_date, e.start_time, e.end_time, e.venue, e.status, e.description, "
                          + "(e.event_date < CURDATE()) AS is_past, (e.event_date = CURDATE()) AS is_today "
                          + "FROM event_registrations r "
                          + "JOIN participants p ON p.participant_id = r.participant_id "
@@ -158,7 +158,7 @@
             joined.add(new String[] { String.valueOf(joinedRs.getInt("event_id")), joinedRs.getString("event_name"),
                     String.valueOf(joinedRs.getDate("event_date")),
                     timeRange(joinedRs.getTime("start_time"), joinedRs.getTime("end_time")),
-                    joinedRs.getString("venue"), state });
+                    joinedRs.getString("venue"), state, joinedRs.getString("description") });
         }
 
         String openSql = "SELECT e.event_id, e.event_name, e.event_date, e.start_time, e.end_time, e.venue, e.description "
@@ -274,7 +274,7 @@
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">Events you have signed up for</caption>
     <thead class="table-light">
-        <tr><th scope="col">Event</th><th scope="col">Date</th><th scope="col">Time</th><th scope="col">Venue</th><th scope="col">Status</th><th scope="col">Action</th></tr>
+        <tr><th scope="col">Event</th><th scope="col">Date</th><th scope="col">Time</th><th scope="col">Venue</th><th scope="col">Description</th><th scope="col">Status</th><th scope="col">Action</th></tr>
     </thead>
     <tbody>
     <% for (String[] ev : joined) { %>
@@ -283,6 +283,7 @@
             <td class="text-nowrap"><%= esc(ev[2]) %></td>
             <td class="text-nowrap"><%= esc(ev[3]) %></td>
             <td><%= esc(ev[4]) %></td>
+            <td class="text-break" style="max-width: 260px;"><%= (ev[6] == null || ev[6].isEmpty()) ? "-" : esc(ev[6]) %></td>
             <td>
                 <% if (ev[5].equals("past")) { %><span class="badge rounded-pill text-bg-success">completed</span>
                 <% } else if (ev[5].equals("inactive")) { %><span class="badge rounded-pill text-bg-secondary">not running</span>
