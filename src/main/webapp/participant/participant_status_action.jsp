@@ -20,10 +20,22 @@
         return;
     }
 
+    // Where the staff member was on the list (tab, search, page) - so they land back there.
+    // filter is whitelisted, q is URL-encoded, p must be a whole number.
+    String backFilter = request.getParameter("filter");
+    if (backFilter == null || !(backFilter.equals("active") || backFilter.equals("inactive"))) { backFilter = "all"; }
+    String backQ = util.Validator.clean(request.getParameter("q"));
+    if (backQ.length() > 100) { backQ = backQ.substring(0, 100); }
+    int backPage = util.Validator.parseId(request.getParameter("p"));
+    if (backPage < 1) { backPage = 1; }
+    String backPart = "filter=" + backFilter
+            + (backQ.isEmpty() ? "" : "&q=" + java.net.URLEncoder.encode(backQ, "UTF-8"))
+            + "&p=" + backPage;
+
     // Step 2: Validate
     int participantId = util.Validator.parseId(idParam);
     if (participantId < 0 || (!mode.equals("activate") && !mode.equals("deactivate"))) {
-        response.sendRedirect("list_participants.jsp?errCode=invalidAction");
+        response.sendRedirect("list_participants.jsp?errCode=invalidAction&" + backPart);
         return;
     }
     String newStatus = mode.equals("activate") ? "active" : "inactive";
@@ -40,11 +52,11 @@
         findPs.setInt(1, participantId);
         ResultSet findRs = findPs.executeQuery();
         if (!findRs.next()) {
-            response.sendRedirect("list_participants.jsp?errCode=notFound");
+            response.sendRedirect("list_participants.jsp?errCode=notFound&" + backPart);
             return;
         }
         if (newStatus.equals(findRs.getString("status"))) {
-            response.sendRedirect("list_participants.jsp?errCode=" + (mode.equals("activate") ? "alreadyActive" : "alreadyInactive"));
+            response.sendRedirect("list_participants.jsp?errCode=" + (mode.equals("activate") ? "alreadyActive" : "alreadyInactive") + "&" + backPart);
             return;
         }
 
@@ -54,11 +66,11 @@
         ps.setString(1, newStatus);
         ps.setInt(2, participantId);
         ps.executeUpdate();
-        response.sendRedirect("list_participants.jsp?msg=" + (mode.equals("activate") ? "participantActivated" : "participantDeactivated"));
+        response.sendRedirect("list_participants.jsp?msg=" + (mode.equals("activate") ? "participantActivated" : "participantDeactivated") + "&" + backPart);
         return;
     } catch (Exception e) {
         System.err.println("participant_status_action.jsp - " + e);
-        response.sendRedirect("list_participants.jsp?errCode=dbError");
+        response.sendRedirect("list_participants.jsp?errCode=dbError&" + backPart);
         return;
     } finally {
         if (conn != null) {

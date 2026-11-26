@@ -22,10 +22,15 @@
         return;
     }
 
+    // Which pages of the two lists the participant was on, so they land back there
+    // (my_signups.jsp pulls a page number that is now too high back into range)
+    String backPart = "sp=" + Math.max(1, util.Validator.parseId(request.getParameter("sp")))
+                    + "&op=" + Math.max(1, util.Validator.parseId(request.getParameter("op")));
+
     // Step 2: Validate
     int eventId = util.Validator.parseId(eventIdParam);
     if (eventId < 0 || (!mode.equals("signup") && !mode.equals("withdraw"))) {
-        response.sendRedirect("my_signups.jsp?errCode=invalidAction");
+        response.sendRedirect("my_signups.jsp?errCode=invalidAction&" + backPart);
         return;
     }
 
@@ -48,17 +53,17 @@
         evPs.setInt(1, eventId);
         ResultSet evRs = evPs.executeQuery();
         if (participantId < 0 || !evRs.next()) {
-            response.sendRedirect("my_signups.jsp?errCode=eventNotFound");
+            response.sendRedirect("my_signups.jsp?errCode=eventNotFound&" + backPart);
             return;
         }
         if (evRs.getBoolean("is_past")) {
-            response.sendRedirect("my_signups.jsp?errCode=eventPast");
+            response.sendRedirect("my_signups.jsp?errCode=eventPast&" + backPart);
             return;
         }
 
         if (mode.equals("signup")) {
             if (!"active".equals(evRs.getString("status"))) {
-                response.sendRedirect("my_signups.jsp?errCode=eventClosed");
+                response.sendRedirect("my_signups.jsp?errCode=eventClosed&" + backPart);
                 return;
             }
             String sql = "INSERT INTO event_registrations (participant_id, event_id, status) VALUES (?, ?, 'registered') "
@@ -67,7 +72,7 @@
             ps.setInt(1, participantId);
             ps.setInt(2, eventId);
             ps.executeUpdate();
-            response.sendRedirect("my_signups.jsp?msg=signedUp");
+            response.sendRedirect("my_signups.jsp?msg=signedUp&" + backPart);
             return;
         } else {
             String sql = "UPDATE event_registrations SET status = 'cancelled' "
@@ -76,12 +81,12 @@
             ps.setInt(1, participantId);
             ps.setInt(2, eventId);
             int rowsAffected = ps.executeUpdate();
-            response.sendRedirect("my_signups.jsp?" + (rowsAffected == 0 ? "errCode=notSignedUp" : "msg=withdrawn"));
+            response.sendRedirect("my_signups.jsp?" + (rowsAffected == 0 ? "errCode=notSignedUp" : "msg=withdrawn") + "&" + backPart);
             return;
         }
     } catch (Exception e) {
         System.err.println("signup_action.jsp - " + e);
-        response.sendRedirect("my_signups.jsp?errCode=dbError");
+        response.sendRedirect("my_signups.jsp?errCode=dbError&" + backPart);
         return;
     } finally {
         if (conn != null) {

@@ -18,6 +18,7 @@
 %>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
+<%@ include file="/WEB-INF/common/pagination.jsp" %>
 <%
     // Which tab is selected - default to "all" if missing/invalid
     String filter = request.getParameter("filter");
@@ -29,6 +30,13 @@
     if (searchQuery == null) { searchQuery = ""; }
     searchQuery = searchQuery.trim();
     String searchLinkPart = searchQuery.isEmpty() ? "" : "&q=" + java.net.URLEncoder.encode(searchQuery, "UTF-8");
+
+    // Pagination: 10 per page. Tab and search links leave out p, so they start at page 1.
+    int pageSize = 10;
+    int pageNum = util.Validator.parseId(request.getParameter("p"));
+    if (pageNum < 1) { pageNum = 1; }
+    int totalRows = 0;
+    int totalPages = 1;
 %>
 
 <h1 class="h2 text-primary mb-4">Participant Management</h1>
@@ -108,6 +116,42 @@
     </div>
 </div>
 
+<%
+    // How many participants match this tab + search (for the page links).
+    // Same WHERE as the table below; own connection so a failure only hides the page links.
+    Connection totalConn = null;
+    try {
+        Class.forName(jdbcDriver);
+        totalConn = DriverManager.getConnection(connURL);
+        String totalSql = "SELECT COUNT(*) FROM participants p JOIN users u ON u.user_id = p.user_id WHERE 1 = 1";
+        if (filter.equals("active")) { totalSql += " AND u.status = 'active'"; }
+        else if (filter.equals("inactive")) { totalSql += " AND u.status = 'inactive'"; }
+        if (!searchQuery.isEmpty()) { totalSql += " AND (p.full_name LIKE ? OR p.participant_code LIKE ?)"; }
+        PreparedStatement totalPs = totalConn.prepareStatement(totalSql);
+        if (!searchQuery.isEmpty()) {
+            String totalLike = "%" + likeEscape(searchQuery) + "%";
+            totalPs.setString(1, totalLike);
+            totalPs.setString(2, totalLike);
+        }
+        ResultSet totalRs = totalPs.executeQuery();
+        if (totalRs.next()) { totalRows = totalRs.getInt(1); }
+        totalPages = Math.max(1, (totalRows + pageSize - 1) / pageSize);
+        if (pageNum > totalPages) { pageNum = totalPages; }
+    } catch (Exception e) {
+        System.err.println("list_participants.jsp (total) - " + e);
+    } finally {
+        if (totalConn != null) {
+            try { totalConn.close(); } catch (SQLException e) { System.err.println("Error closing connection: " + e); }
+        }
+    }
+
+    // page links keep the tab and the search
+    String pageBase = "list_participants.jsp?filter=" + filter + searchLinkPart + "&p=";
+    // used by the Activate / Deactivate forms so staff come back to this same page
+    String backQ = searchQuery;
+%>
+<%= pagerBar("participants", pageBase, pageNum, totalPages, pageSize, totalRows) %>
+
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">List of participants</caption>
@@ -144,14 +188,17 @@
             sql += " AND (p.full_name LIKE ? OR p.participant_code LIKE ?)";
         }
         sql += " GROUP BY p.participant_id, p.participant_code, p.full_name, p.contact_no, p.email, u.status"
-             + " ORDER BY p.full_name";
+             + " ORDER BY p.full_name, p.participant_id LIMIT ? OFFSET ?";
 
         PreparedStatement ps = conn.prepareStatement(sql);
+        int paramIdx = 1;
         if (!searchQuery.isEmpty()) {
             String like = "%" + likeEscape(searchQuery) + "%";
-            ps.setString(1, like);
-            ps.setString(2, like);
+            ps.setString(paramIdx++, like);
+            ps.setString(paramIdx++, like);
         }
+        ps.setInt(paramIdx++, pageSize);
+        ps.setInt(paramIdx++, (pageNum - 1) * pageSize);
         ResultSet rs = ps.executeQuery();
         while (rs.next()) {
             rowCount++;
@@ -172,12 +219,18 @@
                         <form method="post" action="confirm_participant_action.jsp" class="m-0">
                             <input type="hidden" name="id" value="<%= rowId %>">
                             <input type="hidden" name="mode" value="deactivate">
+                            <input type="hidden" name="filter" value="<%= esc(filter) %>">
+                            <input type="hidden" name="q" value="<%= esc(backQ) %>">
+                            <input type="hidden" name="p" value="<%= pageNum %>">
                             <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
                         </form>
                     <% } else { %>
                         <form method="post" action="participant_status_action.jsp" class="m-0">
                             <input type="hidden" name="id" value="<%= rowId %>">
                             <input type="hidden" name="mode" value="activate">
+                            <input type="hidden" name="filter" value="<%= esc(filter) %>">
+                            <input type="hidden" name="q" value="<%= esc(backQ) %>">
+                            <input type="hidden" name="p" value="<%= pageNum %>">
                             <button type="submit" class="btn btn-sm btn-primary">Activate</button>
                         </form>
                     <% } %>

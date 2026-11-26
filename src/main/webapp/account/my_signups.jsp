@@ -19,19 +19,51 @@
     List<String[]> open = new ArrayList<>();
     boolean loadFailed = false;
 
+    // Pagination: My Sign-ups 5 per page (sp), Open Events 10 per page (op).
+    // Separate parameters, so moving through one list does not reset the other.
+    int signPageSize = 5;
+    int openPageSize = 10;
+    int signPage = Math.max(1, util.Validator.parseId(request.getParameter("sp")));
+    int openPage = Math.max(1, util.Validator.parseId(request.getParameter("op")));
+    int signTotal = 0, openTotal = 0;
+    int signPages = 1, openPages = 1;
+
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
+
+        // totals first, so a page number that is too high can be pulled back into range
+        PreparedStatement signCountPs = conn.prepareStatement(
+                "SELECT COUNT(*) FROM event_registrations r JOIN participants p ON p.participant_id = r.participant_id "
+              + "WHERE p.user_id = ? AND r.status = 'registered'");
+        signCountPs.setInt(1, userId);
+        ResultSet signCountRs = signCountPs.executeQuery();
+        if (signCountRs.next()) { signTotal = signCountRs.getInt(1); }
+        signPages = Math.max(1, (signTotal + signPageSize - 1) / signPageSize);
+        if (signPage > signPages) { signPage = signPages; }
+
+        PreparedStatement openCountPs = conn.prepareStatement(
+                "SELECT COUNT(*) FROM events e WHERE e.status = 'active' AND e.event_date >= CURDATE() "
+              + "AND e.event_id NOT IN (SELECT r.event_id FROM event_registrations r "
+              + "  JOIN participants p ON p.participant_id = r.participant_id "
+              + "  WHERE p.user_id = ? AND r.status = 'registered')");
+        openCountPs.setInt(1, userId);
+        ResultSet openCountRs = openCountPs.executeQuery();
+        if (openCountRs.next()) { openTotal = openCountRs.getInt(1); }
+        openPages = Math.max(1, (openTotal + openPageSize - 1) / openPageSize);
+        if (openPage > openPages) { openPage = openPages; }
 
         String joinedSql = "SELECT e.event_id, e.event_name, e.event_date, e.start_time, e.end_time, e.venue, e.status, "
                          + "(e.event_date < CURDATE()) AS is_past "
                          + "FROM event_registrations r "
                          + "JOIN participants p ON p.participant_id = r.participant_id "
                          + "JOIN events e ON e.event_id = r.event_id "
-                         + "WHERE p.user_id = ? AND r.status = 'registered' ORDER BY e.event_date";
+                         + "WHERE p.user_id = ? AND r.status = 'registered' ORDER BY e.event_date, e.event_id LIMIT ? OFFSET ?";
         PreparedStatement joinedPs = conn.prepareStatement(joinedSql);
         joinedPs.setInt(1, userId);
+        joinedPs.setInt(2, signPageSize);
+        joinedPs.setInt(3, (signPage - 1) * signPageSize);
         ResultSet joinedRs = joinedPs.executeQuery();
         while (joinedRs.next()) {
             String state = joinedRs.getBoolean("is_past") ? "past"
@@ -47,9 +79,11 @@
                        + "AND e.event_id NOT IN (SELECT r.event_id FROM event_registrations r "
                        + "  JOIN participants p ON p.participant_id = r.participant_id "
                        + "  WHERE p.user_id = ? AND r.status = 'registered') "
-                       + "ORDER BY e.event_date";
+                       + "ORDER BY e.event_date, e.event_id LIMIT ? OFFSET ?";
         PreparedStatement openPs = conn.prepareStatement(openSql);
         openPs.setInt(1, userId);
+        openPs.setInt(2, openPageSize);
+        openPs.setInt(3, (openPage - 1) * openPageSize);
         ResultSet openRs = openPs.executeQuery();
         while (openRs.next()) {
             open.add(new String[] { String.valueOf(openRs.getInt("event_id")), openRs.getString("event_name"),
@@ -74,6 +108,7 @@
     }
 %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
+<%@ include file="/WEB-INF/common/pagination.jsp" %>
 
 <h1 class="h2 text-primary mb-3">My Events</h1>
 <%@ include file="/WEB-INF/common/messages.jsp" %>
@@ -83,6 +118,7 @@
 <% if (joined.isEmpty()) { %>
     <p class="text-muted">You have not signed up for any events yet. Choose one from the open events below.</p>
 <% } else { %>
+<%= pagerBar("sign-ups", "my_signups.jsp?op=" + openPage + "&sp=", signPage, signPages, signPageSize, signTotal) %>
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">Events you have signed up for</caption>
@@ -106,6 +142,8 @@
                     <form method="post" action="signup_action.jsp" class="m-0">
                         <input type="hidden" name="eventId" value="<%= esc(ev[0]) %>">
                         <input type="hidden" name="mode" value="withdraw">
+                        <input type="hidden" name="sp" value="<%= signPage %>">
+                        <input type="hidden" name="op" value="<%= openPage %>">
                         <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">Withdraw</button>
                     </form>
                 <% } else { %>-<% } %>
@@ -122,6 +160,7 @@
 <% if (open.isEmpty()) { %>
     <p class="text-muted">There are no other open events right now. Please check again later.</p>
 <% } else { %>
+<%= pagerBar("events", "my_signups.jsp?sp=" + signPage + "&op=", openPage, openPages, openPageSize, openTotal) %>
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">Events you can sign up for</caption>
@@ -140,6 +179,8 @@
                 <form method="post" action="signup_action.jsp" class="m-0">
                     <input type="hidden" name="eventId" value="<%= esc(ev[0]) %>">
                     <input type="hidden" name="mode" value="signup">
+                    <input type="hidden" name="sp" value="<%= signPage %>">
+                    <input type="hidden" name="op" value="<%= openPage %>">
                     <button type="submit" class="btn btn-sm btn-primary text-nowrap">Sign Up</button>
                 </form>
             </td>
