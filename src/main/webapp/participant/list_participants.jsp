@@ -4,8 +4,11 @@
     Date: 23/11/2026
     Description: Staff-only participant list (section 3.2). Same layout as
     event/list_events.jsp: stat-tabs (All / Active / Inactive, with counts)
-    that also filter the table, plus a GET search box on name or participant
-    code that stays within the selected tab, and a sort dropdown (name A-Z
+    that also filter the table, plus a search box on name or participant
+    code that stays within the selected tab (searches as you type: the
+    script at the bottom fetches this page in the background and swaps in
+    #results; a Clear button appears once something is typed; without
+    JavaScript, Enter submits the form), and a sort dropdown (name A-Z
     (default) / Z-A, newest first, most sign-ups) whose value is whitelisted
     and kept in the tab and page links. Each row has Edit and
     Activate / Deactivate. Activate is a direct one-click action (reversible);
@@ -64,7 +67,7 @@
     <form method="get" action="list_participants.jsp" class="d-flex gap-2" role="search">
         <input type="hidden" name="filter" value="<%= esc(filter) %>">
         <label for="q" class="visually-hidden">Search by name or participant code</label>
-        <input type="text" id="q" name="q" maxlength="100" class="form-control rounded-pill" placeholder="Search by name or code" value="<%= esc(searchQuery) %>">
+        <input type="text" id="q" name="q" maxlength="100" class="form-control rounded-pill" placeholder="Search by name or code" value="<%= esc(searchQuery) %>" autocomplete="off">
         <label for="sortSelect" class="visually-hidden">Sort participants</label>
         <select id="sortSelect" name="sort" class="form-select rounded-pill w-auto">
             <option value="nameAsc" <%= sort.equals("nameAsc") ? "selected" : "" %>>Name: A to Z</option>
@@ -72,7 +75,8 @@
             <option value="newest" <%= sort.equals("newest") ? "selected" : "" %>>Newest first</option>
             <option value="signupsDesc" <%= sort.equals("signupsDesc") ? "selected" : "" %>>Most sign-ups</option>
         </select>
-        <button type="submit" class="btn btn-primary rounded-pill px-4">Search</button>
+        <a href="list_participants.jsp?filter=<%= filter %><%= sortLinkPart %>" id="clearBtn"
+           class="btn btn-outline-secondary rounded-pill px-4<%= searchQuery.isEmpty() ? " d-none" : "" %>">Clear</a>
     </form>
 </div>
 
@@ -105,6 +109,9 @@
     }
 %>
 
+<%-- Everything that changes with the search (tabs, page links, table) is inside
+     #results, so the live search can swap it without touching the search box --%>
+<div id="results">
 <div class="row g-3 mb-4">
     <div class="col-4">
         <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("all") ? "border border-2 border-dark" : "border-0" %>" href="list_participants.jsp?filter=all<%= searchLinkPart %><%= sortLinkPart %>">
@@ -291,10 +298,48 @@
     </tbody>
 </table>
 </div>
+</div><%-- end #results --%>
 
 <script>
-    // re-sort straight away, like the event list (the form keeps the tab and the search)
-    document.getElementById("sortSelect").addEventListener("change", function () { this.form.submit(); });
+(function () {
+    var input = document.getElementById("q");
+    var form = input.form;
+    var clearBtn = document.getElementById("clearBtn");
+    var typingTimer = null;
+    var lastRequest = 0;
+
+    // fetch this page with the form's values (tab, search, sort) and swap in the results
+    function load() {
+        var url = "list_participants.jsp?" + new URLSearchParams(new FormData(form)).toString();
+        var thisRequest = ++lastRequest;
+        fetch(url, { credentials: "same-origin" })
+            .then(function (res) {
+                if (res.redirected) { window.location.href = res.url; return null; }   // e.g. session expired
+                return res.text();
+            })
+            .then(function (html) {
+                if (html === null || thisRequest !== lastRequest) { return; }          // an older, slower reply
+                var fresh = new DOMParser().parseFromString(html, "text/html").getElementById("results");
+                if (fresh) { document.getElementById("results").innerHTML = fresh.innerHTML; }
+                history.replaceState(null, "", url);
+            });
+    }
+
+    // search as you type (short pause so not every key press sends a request)
+    input.addEventListener("input", function () {
+        clearBtn.classList.toggle("d-none", input.value.trim() === "");
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(load, 250);
+    });
+    clearBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        input.value = "";
+        clearBtn.classList.add("d-none");
+        load();
+        input.focus();
+    });
+    document.getElementById("sortSelect").addEventListener("change", load);
+})();
 </script>
 
 <%@ include file="/WEB-INF/common/footer.jsp" %>
