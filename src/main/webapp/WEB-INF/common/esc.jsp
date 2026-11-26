@@ -1,10 +1,7 @@
 <%--
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
-    Description: Shared esc() helper (section 5 of the coding conventions -
-    XSS escaping for any value that came from the request or the database).
-    Declared with <%! %> because it is a stateless method, not a field, which
-    is the one case the conventions doc allows inside <%! %>.
+    Description: Shared esc() helper.
 
     Include ONCE per page, with:
         <%@ include file="/WEB-INF/common/esc.jsp" %>
@@ -14,6 +11,7 @@
     again itself (that would declare the method twice and fail to compile).
 --%>
 <%!
+//XSS Output Sanitization: declare page-level helper to HTML-escape special characters and handle nulls safely
     private String esc(String s) {
         if (s == null) { return ""; }
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

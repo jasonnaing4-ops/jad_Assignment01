@@ -39,7 +39,7 @@
             
         } catch (Exception e) {
         	// Log any database or connection errors to the server console
-            System.err.println("home.jsp - " + e);
+            System.err.println("login.jsp - " + e);
         } finally {
         	// Ensure the database connection is closed to prevent resource leaks
             if (conn != null) {

@@ -2,21 +2,22 @@
 <%--
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
-    Description: Pre-filled "edit event" form (section 3.3). Follows the L03c
-    confirm-page pattern: look the record up first (existence/validate/process),
+    Description: Pre-filled "edit event" form. look the record up first (existence/validate/process),
     redirect away if the id is bad or the event is gone, and only then write
     HTML. save_event.jsp does the actual UPDATE.
 --%>
+
+<%-- Access Control: verify staff session and load database configuration --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%
-    // Step 1: Existence
+	//Parameter Validation: ensure event ID exists and is a valid integer
     String idParam = request.getParameter("id");
     if (idParam == null) {
         response.sendRedirect("list_events.jsp");
         return;
     }
 
-    // Step 2: Validate
+    
     int eventId;
     try {
         eventId = Integer.parseInt(idParam.trim());
@@ -25,7 +26,7 @@
         return;
     }
 
-    // Step 3: Process - look the event up
+ 	// Database Lookup: fetch existing event details or redirect if missing/error
     String dbEventName = null, 
     dbVenue = null, 
     status = null, 
@@ -65,8 +66,7 @@
         }
     }
 
-    // If save_event.jsp rejected a previous attempt it redirects back here
-    // with the values that were typed, so those take priority over the DB.
+ 	// Error & Form State Resolution: map error codes and prioritize redirected values over DB defaults
     String errCode = request.getParameter("errCode");
     String errMessage = null;
     if (errCode != null) {

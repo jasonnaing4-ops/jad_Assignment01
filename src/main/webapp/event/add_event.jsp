@@ -2,15 +2,18 @@
 <%--
     Author: Pyae Phyo Maung (P2535128)
     Date: 22/11/2026
-    Description: Blank "add event" form (section 3.3). Pure display page -
+    Description: Blank "add event" form. Pure display page -
     save_event.jsp does the actual insert. If save_event.jsp rejects the
     input it redirects back here with errCode plus the values that were
-    typed, so nothing needs to be retyped (section 3.4).
+    typed, so nothing needs to be retyped.
 --%>
+
+<%-- Access Control & Header: restrict page to staff and render global layout --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 
 <%
+	//Error & Form State Handling: map error codes to messages and repopulate previous inputs
     String errCode = request.getParameter("errCode");
     String errMessage = null;
     if (errCode != null) {

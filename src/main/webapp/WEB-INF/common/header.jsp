@@ -22,12 +22,14 @@
     its own differently-named variables means header.jsp never collides with
     whatever a page already declared, and never depends on include order.
 
-    If you change the DB credentials in common/dbconfig.jsp, update the copy
-    below too (same small, deliberate duplication as event_dropdown.jsp).
 --%>
+
+<%-- XSS Helper & Icon Assets: include shared esc() sanitizer and load Bootstrap Icons --%>
 <%@ include file="/WEB-INF/common/esc.jsp" %>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <%
+
+//Session & User Lookup: check active session and fetch current username and role from MySQL
     Integer headerUserId = (Integer) session.getAttribute("userId");
     String headerUsername = null;
     String headerRole = null;
@@ -56,6 +58,8 @@
         }
     }
 %>
+
+<%-- HTML Document Head: configure metadata, page title, Bootstrap CSS, and custom stylesheet --%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,6 +70,7 @@
 <link rel="stylesheet" type="text/css" href="<%= request.getContextPath() %>/css/style.css">
 </head>
 <body class="bg-light">
+<%-- Role-Based Navigation Bar: render brand header, role-specific links, welcome badge, and logout button --%>
 <nav class="navbar navbar-dark bg-brand sticky-top shadow-sm">
     <div class="container-fluid px-4">
         <span class="navbar-brand fw-bold mb-0">Vision Screening Station Management System</span>
@@ -92,6 +97,7 @@
         </div>
     </div>
 </nav>
+<%-- Main Content Containers: open centered container and card layout (closed by footer.jsp) --%>
 <main class="container my-4">
 <div class="card shadow-sm">
 <div class="card-body p-4">
