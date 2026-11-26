@@ -24,13 +24,30 @@
 --%>
 <%
     String msgCode = request.getParameter("msg");
+
+    // Details of a participant staff have just added (set by save_participant.jsp).
+    // Read once and removed straight away, so a refresh shows the plain message
+    // and the details never sit in the URL.
+    String msgAddedCode = (String) session.getAttribute("flashAddedCode");
+    String msgAddedName = (String) session.getAttribute("flashAddedName");
+    String msgAddedEvent = (String) session.getAttribute("flashAddedEvent");
+    session.removeAttribute("flashAddedCode");
+    session.removeAttribute("flashAddedName");
+    session.removeAttribute("flashAddedEvent");
+    // "Participant P-00007 (Tan Mei Ling)" when the details are there, otherwise just "Participant"
+    String msgWho = "Participant";
+    if (msgAddedCode != null) {
+        msgWho = "Participant " + msgAddedCode + (msgAddedName != null ? " (" + msgAddedName + ")" : "");
+    }
     String msgErrCode = request.getParameter("errCode");
     String msgInfo = null;
     String msgError = null;
 
     if (msgCode != null) {
-        if (msgCode.equals("participantAdded")) { msgInfo = "Participant added. Give them their username and password so they can log in."; }
-        else if (msgCode.equals("participantAddedSignedUp")) { msgInfo = "Participant added and signed up for the event."; }
+        if (msgCode.equals("participantAdded")) { msgInfo = msgWho + " added. Give them their username and password so they can log in."; }
+        else if (msgCode.equals("participantAddedSignedUp")) {
+            msgInfo = msgWho + " added and signed up for " + (msgAddedEvent != null ? msgAddedEvent : "the event") + ".";
+        }
         else if (msgCode.equals("participantUpdated")) { msgInfo = "Participant details saved."; }
         else if (msgCode.equals("participantDeactivated")) { msgInfo = "Account deactivated. The participant can no longer log in."; }
         else if (msgCode.equals("participantActivated")) { msgInfo = "Account activated. The participant can log in again."; }

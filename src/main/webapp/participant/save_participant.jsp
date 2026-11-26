@@ -128,12 +128,31 @@
                     ps.executeUpdate();
                 }
 
+                // The success message names the participant that was just created,
+                // using the code the stored procedure generated (e.g. P-00007).
+                // Kept in the session for ONE page view (messages.jsp reads and removes
+                // it), so nothing about the participant goes into the URL.
+                String newCode = null;
+                PreparedStatement codePs = conn.prepareStatement(
+                        "SELECT participant_code FROM participants WHERE participant_id = ?");
+                codePs.setInt(1, newParticipantId);
+                ResultSet codeRs = codePs.executeQuery();
+                if (codeRs.next()) { newCode = codeRs.getString("participant_code"); }
+                session.setAttribute("flashAddedCode", newCode);
+                session.setAttribute("flashAddedName", fullName);
+
                 if (eventId > 0) {
                     PreparedStatement regPs = conn.prepareStatement(
                             "INSERT INTO event_registrations (participant_id, event_id, status) VALUES (?, ?, 'registered')");
                     regPs.setInt(1, newParticipantId);
                     regPs.setInt(2, eventId);
                     regPs.executeUpdate();
+
+                    PreparedStatement evNamePs = conn.prepareStatement("SELECT event_name FROM events WHERE event_id = ?");
+                    evNamePs.setInt(1, eventId);
+                    ResultSet evNameRs = evNamePs.executeQuery();
+                    if (evNameRs.next()) { session.setAttribute("flashAddedEvent", evNameRs.getString("event_name")); }
+
                     response.sendRedirect("list_participants.jsp?msg=participantAddedSignedUp");
                 } else {
                     response.sendRedirect("list_participants.jsp?msg=participantAdded");
