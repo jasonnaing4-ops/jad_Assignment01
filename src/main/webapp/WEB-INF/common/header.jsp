@@ -31,6 +31,8 @@
     Integer headerUserId = (Integer) session.getAttribute("userId");
     String headerUsername = null;
     String headerRole = null;
+    boolean headerMustChange = false;   // demo password not changed yet - hide the participant links
+
 
     if (headerUserId != null) {
         Connection headerConn = null;
@@ -39,13 +41,14 @@
             String hdrConnURL = util.DbConfig.getConnURL(application);            
             Class.forName(hdrJdbcDriver);
             headerConn = DriverManager.getConnection(hdrConnURL);
-            String headerSql = "SELECT username, role FROM users WHERE user_id = ?";
+            String headerSql = "SELECT username, role, must_change_password FROM users WHERE user_id = ?";
             PreparedStatement headerPs = headerConn.prepareStatement(headerSql);
             headerPs.setInt(1, headerUserId);
             ResultSet headerRs = headerPs.executeQuery();
             if (headerRs.next()) {
                 headerUsername = headerRs.getString("username");
                 headerRole = headerRs.getString("role");
+                headerMustChange = headerRs.getBoolean("must_change_password");
             }
         } catch (Exception e) {
             System.err.println("header.jsp - " + e);

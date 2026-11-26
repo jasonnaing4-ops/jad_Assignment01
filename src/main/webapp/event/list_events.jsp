@@ -187,7 +187,7 @@
     }
 %>
 
-<div id="results">
+<div id="results" data-filter="<%= filter %>">
 <div class="row g-3 mb-4">
 	    <div class="col-6 col-lg">
         <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("all") ? "border border-2 border-dark" : "border-0" %>" href="list_events.jsp?filter=all<%= searchLinkPart %>">
@@ -245,7 +245,6 @@
             </div>
         </a>
     </div>
-</div>
 </div>
 
 <%

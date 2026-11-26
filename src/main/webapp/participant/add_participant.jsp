@@ -3,7 +3,8 @@
     Author: Bhone Theinkha Naing (Jason) (<admin no.>)
     Date: 23/11/2026
     Description: Staff "add participant" form (section 3.2). Creates the
-    participant's login as well as their record, and can sign them up for an
+    participant's login as well as their record (staff choose the username;
+    the system generates a demo password that must be changed at first login), and can sign them up for an
     event straight away (associates the registration with an event, section
     3.3) using the shared event dropdown. Pure display page -
     save_participant.jsp does the checks and the insert, and forwards back
@@ -43,8 +44,14 @@
             <%@ include file="/WEB-INF/common/participant_fields.jsp" %>
 
             <h2 class="h5 mt-4 mb-1">Login Details</h2>
-            <p class="form-text mt-0 mb-3">Give these to the participant so they can log in and manage their own sign-ups.</p>
-            <%@ include file="/WEB-INF/common/account_fields.jsp" %>
+            <p class="form-text mt-0 mb-3">A demo password is created for you after saving. Give the participant their username and that password. They must choose their own password the first time they log in.</p>
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                <input type="text" id="username" name="username" maxlength="50" autocomplete="off"
+                       class="form-control<%= invalidClass(errors, "username") %>" value="<%= esc(fUsername) %>" <%= errAria(errors, "username") %>>
+                <div class="form-text">3 to 50 letters, numbers or _</div>
+                <%= errText(errors, "username") %>
+            </div>
 
             <h2 class="h5 mt-4 mb-3">Event Sign-up (optional)</h2>
             <div class="mb-4">

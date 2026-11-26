@@ -9,10 +9,12 @@
       - Every field is checked with util.Validator. A rejected submit is
         FORWARDED back to the form with an errors map, so the typed values are
         kept without putting personal details in the URL.
-      - Add: hashes the password (util.PasswordUtil, bcrypt) and calls the
-        stored procedure sp_register_participant with a CallableStatement
-        (users + participants rows in one transaction, code generated), then
-        optionally signs the participant up for the chosen event.
+      - Add: uses the demo password (util.PasswordUtil.DEMO_PASSWORD), hashes it (bcrypt)
+        and calls the stored procedure sp_register_participant with a
+        CallableStatement (users + participants rows in one transaction, code
+        generated). Then sets users.must_change_password = 1, so the participant
+        has to choose their own password at first login, and optionally signs
+        them up for the chosen event.
       - Edit: UPDATE with a PreparedStatement.
       - Success: redirect to the list with ?msg= (so a refresh cannot resubmit).
 --%>
@@ -37,8 +39,6 @@
     String dob = Validator.clean(request.getParameter("dateOfBirth"));
     String gender = Validator.clean(request.getParameter("gender"));
     String username = Validator.clean(request.getParameter("username"));
-    String password = request.getParameter("password");             // passwords are not trimmed
-    String confirm = request.getParameter("confirmPassword");
     String eventIdParam = Validator.clean(request.getParameter("eventId"));
 
     // Step 2: Validate
@@ -60,8 +60,6 @@
     int eventId = -1;
     if (!isUpdate) {
         Validator.addError(errors, "username", Validator.username(username));
-        Validator.addError(errors, "password", Validator.password(password));
-        Validator.addError(errors, "confirmPassword", Validator.passwordMatch(password, confirm));
         if (!eventIdParam.isEmpty()) {
             eventId = Validator.parseId(eventIdParam);
             if (eventId < 0) {
@@ -108,9 +106,13 @@
             }
 
             if (errors.isEmpty()) {
+                // Staff never type a password: every new participant starts on the
+                // shared demo password. Only its bcrypt hash is stored.
+                String demoPassword = PasswordUtil.DEMO_PASSWORD;
+
                 CallableStatement cs = conn.prepareCall("{call sp_register_participant(?, ?, ?, ?, ?, ?)}");
                 cs.setString(1, username);
-                cs.setString(2, PasswordUtil.hash(password));   // only the bcrypt hash is stored
+                cs.setString(2, PasswordUtil.hash(demoPassword));
                 cs.setString(3, fullName);
                 cs.setString(4, contactNo);
                 cs.setString(5, email);
@@ -128,6 +130,14 @@
                     ps.executeUpdate();
                 }
 
+                // Forced password change: the participant must replace the demo
+                // password before they can use any other page (require_participant.jsp)
+                PreparedStatement flagPs = conn.prepareStatement(
+                        "UPDATE users SET must_change_password = 1 "
+                      + "WHERE user_id = (SELECT user_id FROM participants WHERE participant_id = ?)");
+                flagPs.setInt(1, newParticipantId);
+                flagPs.executeUpdate();
+
                 // The success message names the participant that was just created,
                 // using the code the stored procedure generated (e.g. P-00007).
                 // Kept in the session for ONE page view (messages.jsp reads and removes
@@ -140,6 +150,9 @@
                 if (codeRs.next()) { newCode = codeRs.getString("participant_code"); }
                 session.setAttribute("flashAddedCode", newCode);
                 session.setAttribute("flashAddedName", fullName);
+                // shown to staff ONCE on the next page, then removed from the session
+                session.setAttribute("flashAddedUsername", username);
+                session.setAttribute("flashDemoPassword", demoPassword);
 
                 if (eventId > 0) {
                     PreparedStatement regPs = conn.prepareStatement(
