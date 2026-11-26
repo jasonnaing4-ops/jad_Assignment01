@@ -5,7 +5,9 @@
     Description: Staff-only participant list (section 3.2). Same layout as
     event/list_events.jsp: stat-tabs (All / Active / Inactive, with counts)
     that also filter the table, plus a GET search box on name or participant
-    code that stays within the selected tab. Each row has Edit and
+    code that stays within the selected tab, and a sort dropdown (name A-Z
+    (default) / Z-A, newest first, most sign-ups) whose value is whitelisted
+    and kept in the tab and page links. Each row has Edit and
     Activate / Deactivate. Activate is a direct one-click action (reversible);
     Deactivate goes through confirm_participant_action.jsp first
     (list -> confirm -> action -> redirect pattern, section 7).
@@ -25,6 +27,22 @@
     if (filter == null || !(filter.equals("all") || filter.equals("active") || filter.equals("inactive"))) {
         filter = "all";
     }
+
+    // Sort order - whitelist only; the parameter value itself is never put into the SQL
+    String sort = request.getParameter("sort");
+    String orderBy;
+    if ("nameDesc".equals(sort)) {
+        orderBy = "p.full_name DESC, p.participant_id";
+    } else if ("newest".equals(sort)) {
+        orderBy = "p.created_at DESC, p.participant_id DESC";
+    } else if ("signupsDesc".equals(sort)) {
+        orderBy = "signups DESC, p.full_name, p.participant_id";
+    } else {
+        sort = "nameAsc";                       // default: Name A-Z
+        orderBy = "p.full_name, p.participant_id";
+    }
+    // tab and page links keep the chosen sort (left out when it is the default)
+    String sortLinkPart = sort.equals("nameAsc") ? "" : "&sort=" + sort;
 
     String searchQuery = request.getParameter("q");
     if (searchQuery == null) { searchQuery = ""; }
@@ -47,6 +65,13 @@
         <input type="hidden" name="filter" value="<%= esc(filter) %>">
         <label for="q" class="visually-hidden">Search by name or participant code</label>
         <input type="text" id="q" name="q" maxlength="100" class="form-control rounded-pill" placeholder="Search by name or code" value="<%= esc(searchQuery) %>">
+        <label for="sortSelect" class="visually-hidden">Sort participants</label>
+        <select id="sortSelect" name="sort" class="form-select rounded-pill w-auto">
+            <option value="nameAsc" <%= sort.equals("nameAsc") ? "selected" : "" %>>Name: A to Z</option>
+            <option value="nameDesc" <%= sort.equals("nameDesc") ? "selected" : "" %>>Name: Z to A</option>
+            <option value="newest" <%= sort.equals("newest") ? "selected" : "" %>>Newest first</option>
+            <option value="signupsDesc" <%= sort.equals("signupsDesc") ? "selected" : "" %>>Most sign-ups</option>
+        </select>
         <button type="submit" class="btn btn-primary rounded-pill px-4">Search</button>
     </form>
 </div>
@@ -82,7 +107,7 @@
 
 <div class="row g-3 mb-4">
     <div class="col-4">
-        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("all") ? "border border-2 border-dark" : "border-0" %>" href="list_participants.jsp?filter=all<%= searchLinkPart %>">
+        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("all") ? "border border-2 border-dark" : "border-0" %>" href="list_participants.jsp?filter=all<%= searchLinkPart %><%= sortLinkPart %>">
             <div class="card-body d-flex align-items-center gap-3">
                 <span class="stat-indicator bg-dark"></span>
                 <span class="d-flex flex-column">
@@ -93,7 +118,7 @@
         </a>
     </div>
     <div class="col-4">
-        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("active") ? "border border-2 border-success" : "border-0" %>" href="list_participants.jsp?filter=active<%= searchLinkPart %>">
+        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("active") ? "border border-2 border-success" : "border-0" %>" href="list_participants.jsp?filter=active<%= searchLinkPart %><%= sortLinkPart %>">
             <div class="card-body d-flex align-items-center gap-3">
                 <span class="stat-indicator bg-success"></span>
                 <span class="d-flex flex-column">
@@ -104,7 +129,7 @@
         </a>
     </div>
     <div class="col-4">
-        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("inactive") ? "border border-2 border-secondary" : "border-0" %>" href="list_participants.jsp?filter=inactive<%= searchLinkPart %>">
+        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals("inactive") ? "border border-2 border-secondary" : "border-0" %>" href="list_participants.jsp?filter=inactive<%= searchLinkPart %><%= sortLinkPart %>">
             <div class="card-body d-flex align-items-center gap-3">
                 <span class="stat-indicator bg-secondary"></span>
                 <span class="d-flex flex-column">
@@ -146,7 +171,7 @@
     }
 
     // page links keep the tab and the search
-    String pageBase = "list_participants.jsp?filter=" + filter + searchLinkPart + "&p=";
+    String pageBase = "list_participants.jsp?filter=" + filter + searchLinkPart + sortLinkPart + "&p=";
     // used by the Activate / Deactivate forms so staff come back to this same page
     String backQ = searchQuery;
 %>
@@ -188,7 +213,7 @@
             sql += " AND (p.full_name LIKE ? OR p.participant_code LIKE ?)";
         }
         sql += " GROUP BY p.participant_id, p.participant_code, p.full_name, p.contact_no, p.email, u.status"
-             + " ORDER BY p.full_name, p.participant_id LIMIT ? OFFSET ?";
+             + " ORDER BY " + orderBy + " LIMIT ? OFFSET ?";
 
         PreparedStatement ps = conn.prepareStatement(sql);
         int paramIdx = 1;
@@ -266,5 +291,10 @@
     </tbody>
 </table>
 </div>
+
+<script>
+    // re-sort straight away, like the event list (the form keeps the tab and the search)
+    document.getElementById("sortSelect").addEventListener("change", function () { this.form.submit(); });
+</script>
 
 <%@ include file="/WEB-INF/common/footer.jsp" %>

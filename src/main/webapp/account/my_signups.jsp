@@ -10,10 +10,15 @@
         joined yet, with a Sign Up button.
     Both buttons are small POST forms to signup_action.jsp. Everything is
     looked up by the userId in the session.
+    My sign-ups has status tabs (All / Upcoming / Ongoing / Completed, same
+    date rule as Event Management) and a sort dropdown (event date soonest /
+    latest, event name A-Z, recently signed up). Open events has its own sort
+    dropdown (osort): event date or start time, either way round. All of
+    these values are whitelisted and kept in the page links.
 --%>
 <%@ include file="/WEB-INF/common/require_participant.jsp" %>
 <%
-    // {event_id, name, date, start-end, venue, state}   state: upcoming / past / inactive
+    // {event_id, name, date, start-end, venue, state}   state: upcoming / ongoing / past / inactive
     List<String[]> joined = new ArrayList<>();
     // {event_id, name, date, start-end, venue, description}
     List<String[]> open = new ArrayList<>();
@@ -28,15 +33,72 @@
     int signTotal = 0, openTotal = 0;
     int signPages = 1, openPages = 1;
 
+    // Status tab for My Sign-ups (same date rule as Event Management)
+    String filter = request.getParameter("filter");
+    if (filter == null || !(filter.equals("all") || filter.equals("upcoming")
+            || filter.equals("ongoing") || filter.equals("completed"))) {
+        filter = "all";
+    }
+    String filterSql = "";
+    if (filter.equals("upcoming")) { filterSql = " AND e.event_date > CURDATE()"; }
+    else if (filter.equals("ongoing")) { filterSql = " AND e.event_date = CURDATE()"; }
+    else if (filter.equals("completed")) { filterSql = " AND e.event_date < CURDATE()"; }
+
+    // Sort order for My Sign-ups - whitelist only, never put into the SQL itself
+    String sort = request.getParameter("sort");
+    String orderBy;
+    if ("dateDesc".equals(sort)) {
+        orderBy = "e.event_date DESC, e.start_time DESC, e.event_id";
+    } else if ("nameAsc".equals(sort)) {
+        orderBy = "e.event_name, e.event_date, e.event_id";
+    } else if ("recent".equals(sort)) {
+        orderBy = "r.registered_at DESC, e.event_id";
+    } else {
+        sort = "dateAsc";                       // default: soonest first
+        orderBy = "e.event_date, e.start_time, e.event_id";
+    }
+    // Sort order for Open Events (osort) - date or start time, whitelist only
+    String osort = request.getParameter("osort");
+    String openOrderBy;
+    if ("dateDesc".equals(osort)) {
+        openOrderBy = "e.event_date DESC, e.start_time DESC, e.event_id";
+    } else if ("timeAsc".equals(osort)) {
+        openOrderBy = "e.start_time IS NULL, e.start_time ASC, e.event_date ASC, e.event_id";
+    } else if ("timeDesc".equals(osort)) {
+        openOrderBy = "e.start_time IS NULL, e.start_time DESC, e.event_date ASC, e.event_id";
+    } else {
+        osort = "dateAsc";                      // default: earliest first
+        openOrderBy = "e.event_date, e.start_time, e.event_id";
+    }
+
+    String viewPart = "&filter=" + filter + "&sort=" + sort + "&osort=" + osort;   // kept in every link on this page
+    int tabAll = 0, tabUpcoming = 0, tabOngoing = 0, tabCompleted = 0;
+
     Connection conn = null;
     try {
         Class.forName(jdbcDriver);
         conn = DriverManager.getConnection(connURL);
 
+        // counts for the status tabs
+        PreparedStatement tabPs = conn.prepareStatement(
+                "SELECT COUNT(*) AS total, SUM(e.event_date > CURDATE()) AS up, "
+              + "SUM(e.event_date = CURDATE()) AS ongo, SUM(e.event_date < CURDATE()) AS done "
+              + "FROM event_registrations r JOIN participants p ON p.participant_id = r.participant_id "
+              + "JOIN events e ON e.event_id = r.event_id WHERE p.user_id = ? AND r.status = 'registered'");
+        tabPs.setInt(1, userId);
+        ResultSet tabRs = tabPs.executeQuery();
+        if (tabRs.next()) {
+            tabAll = tabRs.getInt("total");
+            tabUpcoming = tabRs.getInt("up");
+            tabOngoing = tabRs.getInt("ongo");
+            tabCompleted = tabRs.getInt("done");
+        }
+
         // totals first, so a page number that is too high can be pulled back into range
         PreparedStatement signCountPs = conn.prepareStatement(
                 "SELECT COUNT(*) FROM event_registrations r JOIN participants p ON p.participant_id = r.participant_id "
-              + "WHERE p.user_id = ? AND r.status = 'registered'");
+              + "JOIN events e ON e.event_id = r.event_id "
+              + "WHERE p.user_id = ? AND r.status = 'registered'" + filterSql);
         signCountPs.setInt(1, userId);
         ResultSet signCountRs = signCountPs.executeQuery();
         if (signCountRs.next()) { signTotal = signCountRs.getInt(1); }
@@ -55,11 +117,12 @@
         if (openPage > openPages) { openPage = openPages; }
 
         String joinedSql = "SELECT e.event_id, e.event_name, e.event_date, e.start_time, e.end_time, e.venue, e.status, "
-                         + "(e.event_date < CURDATE()) AS is_past "
+                         + "(e.event_date < CURDATE()) AS is_past, (e.event_date = CURDATE()) AS is_today "
                          + "FROM event_registrations r "
                          + "JOIN participants p ON p.participant_id = r.participant_id "
                          + "JOIN events e ON e.event_id = r.event_id "
-                         + "WHERE p.user_id = ? AND r.status = 'registered' ORDER BY e.event_date, e.event_id LIMIT ? OFFSET ?";
+                         + "WHERE p.user_id = ? AND r.status = 'registered'" + filterSql
+                         + " ORDER BY " + orderBy + " LIMIT ? OFFSET ?";
         PreparedStatement joinedPs = conn.prepareStatement(joinedSql);
         joinedPs.setInt(1, userId);
         joinedPs.setInt(2, signPageSize);
@@ -67,7 +130,8 @@
         ResultSet joinedRs = joinedPs.executeQuery();
         while (joinedRs.next()) {
             String state = joinedRs.getBoolean("is_past") ? "past"
-                         : ("active".equals(joinedRs.getString("status")) ? "upcoming" : "inactive");
+                         : !"active".equals(joinedRs.getString("status")) ? "inactive"
+                         : joinedRs.getBoolean("is_today") ? "ongoing" : "upcoming";
             joined.add(new String[] { String.valueOf(joinedRs.getInt("event_id")), joinedRs.getString("event_name"),
                     String.valueOf(joinedRs.getDate("event_date")),
                     timeRange(joinedRs.getTime("start_time"), joinedRs.getTime("end_time")),
@@ -79,7 +143,7 @@
                        + "AND e.event_id NOT IN (SELECT r.event_id FROM event_registrations r "
                        + "  JOIN participants p ON p.participant_id = r.participant_id "
                        + "  WHERE p.user_id = ? AND r.status = 'registered') "
-                       + "ORDER BY e.event_date, e.event_id LIMIT ? OFFSET ?";
+                       + "ORDER BY " + openOrderBy + " LIMIT ? OFFSET ?";
         PreparedStatement openPs = conn.prepareStatement(openSql);
         openPs.setInt(1, userId);
         openPs.setInt(2, openPageSize);
@@ -115,10 +179,54 @@
 <% if (loadFailed) { %><div class="alert alert-danger">Could not load events right now. Please try again.</div><% } %>
 
 <h2 class="h5 mt-4 mb-3">My Sign-ups</h2>
+
+<div class="row g-3 mb-3">
+    <%
+        // {filter value, label, Bootstrap colour, count} - colours match the Event Management tabs
+        String[][] tabs = {
+            {"all", "All", "dark", String.valueOf(tabAll)},
+            {"upcoming", "Upcoming", "primary", String.valueOf(tabUpcoming)},
+            {"ongoing", "Ongoing", "warning", String.valueOf(tabOngoing)},
+            {"completed", "Completed", "success", String.valueOf(tabCompleted)}
+        };
+        for (String[] t : tabs) {
+    %>
+    <div class="col-6 col-lg-3">
+        <a class="card stat-card h-100 text-decoration-none shadow-sm <%= filter.equals(t[0]) ? "border border-2 border-" + t[2] : "border-0" %>"
+           href="my_signups.jsp?filter=<%= t[0] %>&amp;sort=<%= sort %>&amp;osort=<%= osort %>&amp;op=<%= openPage %>">
+            <div class="card-body d-flex align-items-center gap-3">
+                <span class="stat-indicator bg-<%= t[2] %>"></span>
+                <span class="d-flex flex-column">
+                    <span class="fs-4 fw-bold text-dark lh-1"><%= t[3] %></span>
+                    <span class="small text-muted"><%= t[1] %></span>
+                </span>
+            </div>
+        </a>
+    </div>
+    <% } %>
+</div>
+
+<form method="get" action="my_signups.jsp" class="d-flex justify-content-end mb-3">
+    <input type="hidden" name="filter" value="<%= filter %>">
+    <input type="hidden" name="osort" value="<%= osort %>">
+    <input type="hidden" name="op" value="<%= openPage %>">
+    <label for="sortSelect" class="visually-hidden">Sort my sign-ups</label>
+    <select id="sortSelect" name="sort" class="form-select form-select-sm rounded-pill w-auto auto-sort">
+        <option value="dateAsc" <%= sort.equals("dateAsc") ? "selected" : "" %>>Event date: soonest first</option>
+        <option value="dateDesc" <%= sort.equals("dateDesc") ? "selected" : "" %>>Event date: latest first</option>
+        <option value="nameAsc" <%= sort.equals("nameAsc") ? "selected" : "" %>>Event name: A to Z</option>
+        <option value="recent" <%= sort.equals("recent") ? "selected" : "" %>>Recently signed up</option>
+    </select>
+</form>
+
 <% if (joined.isEmpty()) { %>
-    <p class="text-muted">You have not signed up for any events yet. Choose one from the open events below.</p>
+    <% if (filter.equals("all")) { %>
+        <p class="text-muted">You have not signed up for any events yet. Choose one from the open events below.</p>
+    <% } else { %>
+        <p class="text-muted">You have no <%= filter %> sign-ups.</p>
+    <% } %>
 <% } else { %>
-<%= pagerBar("sign-ups", "my_signups.jsp?op=" + openPage + "&sp=", signPage, signPages, signPageSize, signTotal) %>
+<%= pagerBar("sign-ups", "my_signups.jsp?op=" + openPage + viewPart + "&sp=", signPage, signPages, signPageSize, signTotal) %>
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">Events you have signed up for</caption>
@@ -133,9 +241,10 @@
             <td class="text-nowrap"><%= esc(ev[3]) %></td>
             <td><%= esc(ev[4]) %></td>
             <td>
-                <% if (ev[5].equals("past")) { %><span class="badge rounded-pill text-bg-secondary">completed</span>
-                <% } else if (ev[5].equals("inactive")) { %><span class="badge rounded-pill text-bg-warning">not running</span>
-                <% } else { %><span class="badge rounded-pill text-bg-success">registered</span><% } %>
+                <% if (ev[5].equals("past")) { %><span class="badge rounded-pill text-bg-success">completed</span>
+                <% } else if (ev[5].equals("inactive")) { %><span class="badge rounded-pill text-bg-secondary">not running</span>
+                <% } else if (ev[5].equals("ongoing")) { %><span class="badge rounded-pill text-bg-warning">ongoing</span>
+                <% } else { %><span class="badge rounded-pill text-bg-primary">upcoming</span><% } %>
             </td>
             <td>
                 <% if (!ev[5].equals("past")) { %>
@@ -160,7 +269,19 @@
 <% if (open.isEmpty()) { %>
     <p class="text-muted">There are no other open events right now. Please check again later.</p>
 <% } else { %>
-<%= pagerBar("events", "my_signups.jsp?sp=" + signPage + "&op=", openPage, openPages, openPageSize, openTotal) %>
+<form method="get" action="my_signups.jsp" class="d-flex justify-content-end mb-3">
+    <input type="hidden" name="filter" value="<%= filter %>">
+    <input type="hidden" name="sort" value="<%= sort %>">
+    <input type="hidden" name="sp" value="<%= signPage %>">
+    <label for="openSortSelect" class="visually-hidden">Sort open events</label>
+    <select id="openSortSelect" name="osort" class="form-select form-select-sm rounded-pill w-auto auto-sort">
+        <option value="dateAsc" <%= osort.equals("dateAsc") ? "selected" : "" %>>Date: earliest first</option>
+        <option value="dateDesc" <%= osort.equals("dateDesc") ? "selected" : "" %>>Date: latest first</option>
+        <option value="timeAsc" <%= osort.equals("timeAsc") ? "selected" : "" %>>Time: morning first</option>
+        <option value="timeDesc" <%= osort.equals("timeDesc") ? "selected" : "" %>>Time: evening first</option>
+    </select>
+</form>
+<%= pagerBar("events", "my_signups.jsp?sp=" + signPage + viewPart + "&op=", openPage, openPages, openPageSize, openTotal) %>
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
     <caption class="visually-hidden">Events you can sign up for</caption>
@@ -190,5 +311,12 @@
 </table>
 </div>
 <% } %>
+
+<script>
+    // re-sort straight away (each form keeps the tab and the other list's sort)
+    document.querySelectorAll(".auto-sort").forEach(function (select) {
+        select.addEventListener("change", function () { this.form.submit(); });
+    });
+</script>
 
 <%@ include file="/WEB-INF/common/footer.jsp" %>
