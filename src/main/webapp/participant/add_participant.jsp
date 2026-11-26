@@ -26,6 +26,7 @@
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%@ include file="/WEB-INF/common/form_helpers.jsp" %>
 
+<div class="mx-auto" style="max-width: 720px;">
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="list_participants.jsp">Participants</a></li>
@@ -35,7 +36,6 @@
 <h1 class="h2 text-primary mb-2">Add Participant</h1>
 <p class="text-muted">Fields marked <span class="text-danger">*</span> are required.</p>
 
-<div style="max-width: 720px;">
     <%@ include file="/WEB-INF/common/messages.jsp" %>
 
     <form method="post" action="save_participant.jsp" class="card shadow-sm" novalidate>

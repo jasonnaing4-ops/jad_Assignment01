@@ -57,9 +57,8 @@
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%@ include file="/WEB-INF/common/form_helpers.jsp" %>
 
+<div class="mx-auto" style="max-width: 720px;">
 <h1 class="h2 text-primary mb-3">My Account</h1>
-
-<div style="max-width: 720px;">
     <%@ include file="/WEB-INF/common/messages.jsp" %>
 
     <div class="card shadow-sm mb-4">
