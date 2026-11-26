@@ -15,6 +15,10 @@
       trusted out of the session). A staff user goes to home.jsp
       (notAuthorized). If staff deactivated this account after the participant
       logged in, the session is ended straight away (accountInactive).
+    - If the user row no longer exists (staff deleted the participant while
+      they were logged in) or the database cannot be reached, the session is
+      ended and the user goes to login.jsp (notLoggedIn / dbError) - never
+      bounced on to require_staff.jsp, which would loop back here.
     - Protected pages are marked "no-store", so Back after logout cannot show
       a cached copy.
 
@@ -44,6 +48,7 @@
     String guardRole = null;
     String guardStatus = null;
     boolean guardMustChange = false;
+    boolean guardDbFailed = false;
     Connection guardConn = null;
     try {
         Class.forName(jdbcDriver);
@@ -59,10 +64,21 @@
         }
     } catch (Exception e) {
         System.err.println("require_participant.jsp - " + e);
+        guardDbFailed = true;
     } finally {
         if (guardConn != null) {
             try { guardConn.close(); } catch (SQLException e) { System.err.println("Error closing connection: " + e); }
         }
+    }
+
+    // No user row (the account was deleted while logged in) or the database could
+    // not be reached: end the session and go to login. Without this, a null role
+    // would bounce between this guard and require_staff.jsp ("too many redirects").
+    if (guardRole == null) {
+        session.invalidate();
+        response.sendRedirect(request.getContextPath() + "/login/login.jsp?errCode="
+                + (guardDbFailed ? "dbError" : "notLoggedIn"));
+        return;
     }
 
     if ("participant".equals(guardRole) && !"active".equals(guardStatus)) {
