@@ -50,9 +50,9 @@ public class Validator {
 		return clean(value).isEmpty();
 	}
 
-	// Removes spaces so "9123 4567" is stored as "91234567".
+	// Only trims the ends; a space inside the number is NOT removed, so "9123 4567" is rejected.
 	public static String cleanContact(String value) {
-		return clean(value).replace(" ", "");
+		return clean(value);
 	}
 
 	// Adds the message under the field name, but only if there is a message.
@@ -191,7 +191,7 @@ public class Validator {
 		return null;
 	}
 
-	// Singapore numbers: 8 digits starting with 6, 8 or 9. Spaces are ignored.
+	// Singapore numbers: exactly 8 digits starting with 6, 8 or 9 - no spaces or other characters.
 	public static String contactNo(String value) {
 		String v = cleanContact(value);
 		if (v.isEmpty()) {
