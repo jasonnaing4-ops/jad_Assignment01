@@ -13,6 +13,14 @@
 
 <%-- Access Control: verify staff session and load database configuration --%>
 <%@ include file="/WEB-INF/common/require_staff.jsp" %>
+
+<%
+    if (!"POST".equals(request.getMethod())) {
+        response.sendRedirect("list_events.jsp");
+        return;
+    }
+%>
+
 <%
 	//Parameter Validation: ensure id and mode exist, parse eventId, and whitelist action mode
     String idParam = request.getParameter("id");
