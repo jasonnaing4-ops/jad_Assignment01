@@ -1,4 +1,4 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.util.Map" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" import="java.sql.*, java.util.Map" %>
 <%--
     Author: Bhone Theinkha Naing (Jason) (<admin no.>)
     Date: 23/11/2026
@@ -6,7 +6,8 @@
     participant's login as well as their record (staff choose the username;
     the system generates a demo password that must be changed at first login), and can sign them up for an
     event straight away (associates the registration with an event, section
-    3.3) using the shared event dropdown. Pure display page -
+    3.3). The dropdown lists upcoming events only (active, dated after
+    today). Display page only -
     save_participant.jsp does the checks and the insert, and forwards back
     here with an errors map if anything is wrong (typed values are kept,
     passwords are not).
@@ -22,6 +23,7 @@
     String fEmail = request.getParameter("email");
     String fDob = request.getParameter("dateOfBirth");
     String fGender = request.getParameter("gender");
+    String fEventId = request.getParameter("eventId");   // keeps the chosen event after an error
 %>
 <%@ include file="/WEB-INF/common/header.jsp" %>
 <%@ include file="/WEB-INF/common/form_helpers.jsp" %>
@@ -58,7 +60,34 @@
                 <label for="eventId" class="form-label fw-semibold">Sign up for an event</label>
                 <select id="eventId" name="eventId" class="form-select<%= invalidClass(errors, "eventId") %>" <%= errAria(errors, "eventId") %>>
                     <option value="">-- No event for now --</option>
-                    <%@ include file="/WEB-INF/common/event_dropdown.jsp" %>
+<%
+    // Upcoming events only (active, date after today) - same rule that
+    // save_participant.jsp re-checks on the server
+    Connection evConn = null;
+    try {
+        Class.forName(jdbcDriver);
+        evConn = DriverManager.getConnection(connURL);
+        PreparedStatement evPs = evConn.prepareStatement(
+                "SELECT event_id, event_name, event_date FROM events "
+              + "WHERE status = 'active' AND event_date > CURDATE() ORDER BY event_date, event_name");
+        ResultSet evRs = evPs.executeQuery();
+        while (evRs.next()) {
+            String evId = String.valueOf(evRs.getInt("event_id"));
+%>
+                    <option value="<%= evId %>"<%= evId.equals(fEventId) ? " selected" : "" %>><%= esc(evRs.getString("event_name")) %> (<%= evRs.getDate("event_date") %>)</option>
+<%
+        }
+    } catch (Exception e) {
+        System.err.println("add_participant.jsp - " + e);
+%>
+                    <option value="" disabled>-- events unavailable, try again later --</option>
+<%
+    } finally {
+        if (evConn != null) {
+            try { evConn.close(); } catch (SQLException e) { System.err.println("Error closing connection: " + e); }
+        }
+    }
+%>
                 </select>
                 <%= errText(errors, "eventId") %>
             </div>

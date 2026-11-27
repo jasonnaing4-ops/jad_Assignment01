@@ -97,7 +97,7 @@
             // Add: check the chosen event BEFORE creating anything
             if (eventId > 0) {
                 PreparedStatement evPs = conn.prepareStatement(
-                        "SELECT event_id FROM events WHERE event_id = ? AND status = 'active' AND event_date >= CURDATE()");
+                        "SELECT event_id FROM events WHERE event_id = ? AND status = 'active' AND event_date > CURDATE()");
                 evPs.setInt(1, eventId);
                 ResultSet evRs = evPs.executeQuery();
                 if (!evRs.next()) {
